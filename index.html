@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0A0D19">
+  <title>Mündu — Retrieval instrument</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="physics.js" defer></script>
+  <script src="app.js" defer></script>
+</head>
+<body>
+  <main>
+    <header>
+      <div class="identity"><h1>MÜNDU<span>_</span></h1><span class="edition">RETRIEVAL INSTRUMENT / 01</span></div>
+      <div class="language">ENGLISH <span>→</span> SPANISH</div>
+      <div class="readouts"><span class="status"><i id="status-dot"></i><span id="status">LIVE</span></span><span>RETRIEVALS <b id="count">000</b></span><span>PROGRESS <b id="score">0.0</b><small>%</small></span><button id="tune" type="button" aria-expanded="false" aria-controls="tuning-panel">TUNE <span>≡</span></button></div>
+    </header>
+
+    <section id="tuning-panel" class="tuning-panel" aria-label="Live tuning settings" hidden>
+      <div class="tuning-title"><span>INSTRUMENT TUNING</span><button id="tuning-close" type="button" aria-label="Close tuning settings">CLOSE ×</button></div>
+      <p>Change values live. Session Reset keeps your settings; reload restores defaults.</p>
+      <div id="tuning-fields"></div>
+      <button id="tuning-defaults" type="button">RESTORE DEFAULT SETTINGS ↺</button>
+    </section>
+
+    <section class="instrument" aria-label="Vocabulary states and session performance">
+      <div class="chart-heading"><span>01 / WORD FIELD</span><div class="legend"><span class="magenta">▥ WORD DEPTH</span><span class="cyan">∿ OVERALL PROGRESS</span></div></div>
+      <div class="chart-wrap">
+        <svg id="chart" viewBox="0 0 1270 560" role="img" aria-labelledby="chart-title chart-description">
+          <title id="chart-title">Falling vocabulary and overall progress</title>
+          <desc id="chart-description">One word begins active; the remaining words appear progressively in ten fixed slots. Active words fall with time and rise on retrieval. The cyan line independently shows successive progress observations, from zero at the bottom to one hundred at the top.</desc>
+          <defs><linearGradient id="bar-fill" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ED4CA8" stop-opacity=".025"/><stop offset="1" stop-color="#ED4CA8" stop-opacity=".20"/></linearGradient></defs>
+          <g id="grid"></g><g id="bars"></g>
+          <path id="trace" fill="none" stroke="#43E6ED" stroke-width="2.3" stroke-linejoin="round" stroke-linecap="round"/>
+          <g id="labels"></g>
+          <text id="trace-percentage" x="1192" y="498" fill="#43E6ED" font-size="16" font-weight="700" dominant-baseline="central" stroke="#0A0D19" stroke-width="4" paint-order="stroke" aria-label="Current overall progress">0.0%</text>
+        </svg>
+      </div>
+      <div class="chart-foot"><span>WORDS: FIXED SLOTS <span class="divider">/</span> TRACE: SESSION TIME →</span><span>FULL SESSION <span class="divider">/</span> SMOOTHED HISTORY</span></div>
+    </section>
+
+    <section class="terminal" aria-label="Retrieval controls">
+      <div class="target"><span class="eyebrow">NEXT RETRIEVAL / LOWEST WORD</span><div><span class="chevron">›</span> <strong id="target-word">window</strong><span class="cursor">_</span><span id="target-streak" class="streak">STREAK 00</span></div></div>
+      <div class="instruction"><span id="prompt">LETTER = CORRECT / BACKSPACE = MISTAKE</span><span id="feedback">Ten words. One key. Keep them afloat.</span></div>
+      <div class="controls"><label for="speed">DRIFT<select id="speed"><option value="0.5">0.5×</option><option value="1" selected>1×</option><option value="2">2×</option></select></label><button id="pause" type="button">PAUSE <span>Ⅱ</span></button><button id="reset" type="button">RESET <span>↺</span></button></div>
+    </section>
+    <footer><span>REPETITION BUILDS FLUENCY.</span><span>SIMULATED ANSWERS <span class="divider">/</span> PROGRESS FROM WORD POSITIONS</span></footer>
+  </main>
+  <dialog id="completion-screen" aria-labelledby="completion-title" aria-describedby="completion-description">
+    <div class="completion-top"><span><i></i> SESSION COMPLETE</span><span>MÜNDU / FINISH SIGNAL</span></div>
+    <div class="completion-hero">
+      <div><p class="completion-kicker">EVERY WORD. OVER THE LINE.</p><h2 id="completion-title">ALL WORDS<br><em>AFLOAT.</em></h2><p id="completion-description">You lifted the entire vocabulary.<br>One complete journey.</p></div>
+      <div class="completion-percent">100<span>%</span><small>DATASET COMPLETE</small></div>
+    </div>
+    <div class="completion-bottom">
+      <div class="completion-stats"><span>SESSION TIME <b id="completion-time">00:00</b></span><span>ANSWERS <b id="completion-count">0</b></span><span>WORDS <b id="completion-word-count">—</b></span></div>
+      <div class="completion-actions"><button id="completion-review" type="button">VIEW JOURNEY ↗</button><button id="completion-again" type="button" autofocus>PLAY AGAIN <span>↺</span></button></div>
+    </div>
+  </dialog>
+</body>
+</html>
