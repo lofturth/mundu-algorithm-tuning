@@ -7,11 +7,9 @@ const TUNE = { width:1200, top:24, bottom:502, reachableTop:60, left:20, right:1
 // Gravity uses percentage points per second, independent of retrieval streak.
 const MOTION = { ...MunduPhysics.DEFAULTS.motion };
 // A selected word starts a new response clock; active session time excludes pause.
-// Store all raw observations; limit only the number of rendered vertices.
-const PROGRESS = { sampleSeconds:0.25, historicalVertices:600, rawVertices:1200 };
+// Store and render every raw observation.
+const PROGRESS = { sampleSeconds:0.25 };
 const TRACE_LABEL = { gap:12 };
-// Rendering only: window width is in seconds, never in observation counts.
-const SMOOTH = { rawSeconds:0.6, settleSeconds:1.8, maxWindowSeconds:6, maxBlend:1 };
 const FINISH = { ...MunduPhysics.DEFAULTS.finish };
 // NEW WORDS must remain strictly below completion and above the starting floor.
 const UNLOCK = { ...MunduPhysics.DEFAULTS.unlock };
@@ -119,90 +117,9 @@ function checkCompletion() {
   el('completion-screen').showModal();
 }
 
-// Binary lookup keeps archived observations out of each frame's visible scan.
-function firstAfter(time) {
-  let low=0, high=observationTimes.length;
-  while (low<high) {
-    const mid=(low+high)>>>1;
-    if (observationTimes[mid]<=time) low=mid+1; else high=mid;
-  }
-  return low;
-}
-
-// Cache the time integral of the raw piecewise-linear signal. Duplicate times
-// (instant jumps) have zero duration, so rapid answers cannot bias the average
-// merely by contributing more samples. Raw observations are never changed.
-let integralSource=null, integralAreas=[];
-function updateIntegral() {
-  if (integralSource!==observations) {
-    integralSource=observations; integralAreas=[0];
-  }
-  for (let i=integralAreas.length;i<observations.length;i++) {
-    integralAreas.push(integralAreas[i-1]+(observationTimes[i]-observationTimes[i-1])*
-      (observations[i-1]+observations[i])/2);
-  }
-}
-
-function signalIntegral(time) {
-  const t=clamp(time,0,activeTime);
-  const i=Math.max(0,firstAfter(t)-1);
-  const nextTime=i+1<observations.length?observationTimes[i+1]:activeTime;
-  const nextValue=i+1<observations.length?observations[i+1]:progressValue;
-  const duration=nextTime-observationTimes[i];
-  const elapsed=t-observationTimes[i];
-  const value=duration>0?observations[i]+(nextValue-observations[i])*elapsed/duration:observations[i];
-  return integralAreas[i]+elapsed*(observations[i]+value)/2;
-}
-
-function rawProgressAt(time) {
-  const i=Math.max(0,firstAfter(time)-1);
-  const nextTime=i+1<observations.length?observationTimes[i+1]:activeTime;
-  const nextValue=i+1<observations.length?observations[i+1]:progressValue;
-  const duration=nextTime-observationTimes[i];
-  return duration>0?observations[i]+(nextValue-observations[i])*
-    (time-observationTimes[i])/duration:observations[i];
-}
-
-function smoothedProgress(time,raw) {
-  if (time===0 || time===activeTime || activeTime===0) return raw;
-  const age=activeTime-time;
-  if (age<=SMOOTH.rawSeconds) return raw;
-  const fraction=clamp((age-SMOOTH.rawSeconds)/SMOOTH.settleSeconds,0,1);
-  const strength=fraction*fraction*(3-2*fraction);
-  const halfWindow=SMOOTH.maxWindowSeconds*strength/2;
-  const left=Math.max(0,time-halfWindow), right=Math.min(activeTime,time+halfWindow);
-  if (right-left<1e-7) return raw;
-  const average=(signalIntegral(right)-signalIntegral(left))/(right-left);
-  return raw+(average-raw)*strength*SMOOTH.maxBlend;
-}
-
 function plottedHistory() {
-  updateIntegral();
-  if (activeTime===0) return [[0,progressValue]];
-  const points=[[0,observations[0]]];
-  const rawStart=Math.max(0,activeTime-SMOOTH.rawSeconds-SMOOTH.settleSeconds);
-  // Draw the entire older journey with a fixed vertex budget, without deleting
-  // any stored data. Time-weighted smoothing queries use the cached integral.
-  const vertices=Math.min(PROGRESS.historicalVertices,Math.max(2,Math.ceil(rawStart/PROGRESS.sampleSeconds)));
-  for (let i=1;i<=vertices;i++) {
-    const time=rawStart*i/vertices;
-    points.push([time,smoothedProgress(time,rawProgressAt(time))]);
-  }
-  const start=firstAfter(rawStart);
-  const length=observations.length-start;
-  const bucketSize=Math.max(1,Math.ceil(length/(PROGRESS.rawVertices/4)));
-  // Keep first/last and extrema in very dense raw history. Values and times
-  // remain exact; the newest endpoint is always included separately.
-  for (let begin=start;begin<observations.length;begin+=bucketSize) {
-    const end=Math.min(observations.length,begin+bucketSize);
-    let low=begin,high=begin;
-    for (let i=begin+1;i<end;i++) {
-      if (observations[i]<observations[low]) low=i;
-      if (observations[i]>observations[high]) high=i;
-    }
-    const indices=[...new Set([begin,low,high,end-1])].sort((a,b)=>a-b);
-    for (const i of indices) points.push([observationTimes[i],smoothedProgress(observationTimes[i],observations[i])]);
-  }
+  const points=observations.map((value,i)=>[observationTimes[i],value]);
+  // Include the actual current progress between recorded samples.
   points.push([activeTime,progressValue]);
   return points;
 }
@@ -387,11 +304,6 @@ const SETTINGS = [
     ['bottomToTopMultiplier','Bottom-to-top multiplier','Bottom ÷ top for falling and kicks; 3 = three times',1,1000,0.1],
     ['kickHeightPercent','Kick height (%)','A 1× kick from the bottom reaches this height',1,100,0.1],
     ['gravityReductionPercent','Gravity reduction / new word (%)','Each additional unlocked word reduces current gravity',0,10,0.1]]},
-  {name:'HISTORICAL SMOOTHING',values:SMOOTH,fields:[
-    ['rawSeconds','Raw bleeding edge','Seconds of completely unsmoothed activity',0.1,3,0.1],
-    ['settleSeconds','Time to become smooth','Seconds after leaving the raw edge',0.1,5,0.1],
-    ['maxWindowSeconds','Oldest averaging window','Seconds; larger = calmer history',0,15,0.5],
-    ['maxBlend','Historical smoothing strength','0 = raw; 1 = fully smoothed tail',0,1,0.05]]},
   {name:'COMPLETION LINE',values:FINISH,fields:[
     ['threshold','Completion position (%)','Higher percentage = higher / harder to reach',25200/442,44100/442,0.1]]}
 ];

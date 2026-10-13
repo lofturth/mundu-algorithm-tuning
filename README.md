@@ -63,7 +63,7 @@ The whole-number label beneath each word shows its completion height in field pe
 
 A compact kick graph beside the retrieval prompt displays the existing multiplier curve in magenta and a live cyan indicator. Its elapsed time comes directly from engine `time - selectedAt`; the same `kickMultiplier` used by gameplay determines the indicator and every sampled vertex of the smooth exponential curve. A dashed guide and point mark the two-second hint without a drop or discontinuity. Pause freezes it, and its time axis expands after four seconds to keep long waits visible. Ending a prompt hides its graph; because the game immediately creates the next prompt, its reset graph appears on the next animation frame. Completion keeps it hidden. There is no separate graph timer and no change to rewards or physics.
 
-Overall progress still averages word progress toward the completion threshold, using the lower of logical and displayed positions. The complete timestamped history, visual smoothing, percentage label, ghosting, and completion overlay remain in `app.js`.
+Overall progress still averages word progress toward the completion threshold, using the lower of logical and displayed positions. The cyan progress-history curve connects every recorded timestamped progress value with straight line segments, followed by the actual current progress as its live endpoint. No averaging, interpolation, or vertex reduction is applied. Sampling remains every 0.25 seconds on observed frames, with additional observations around actions and transitions. The graph geometry, colors, percentage label, ghosting, and completion overlay remain in `app.js`.
 
 ## Engine API
 

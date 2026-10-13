@@ -49,19 +49,37 @@ test('local scripts load in order; controls, tuning and default settings still w
  assert.equal(h.run('session.getState().config.motion.kickHeightPercent'),25);
  assert.equal(h.run("tuningInputs.some(v=>v.key==='baseKick'||v.key==='baseFallingSpeed'||v.key==='kickStrengthPercent')"),false);
 });
-test('progress keeps full history, raw endpoint, percentages and visual-only smoothing',()=>{
+test('progress keeps every raw history sample, live endpoint and percentages',()=>{
  const h=host();h.advance(.1);h.retrieve();h.advance(.15);
  assert.ok(h.run('progressValue')>0);
  const lifted=h.run('progressValue');h.advance(20);assert.ok(h.run('progressValue')<lifted);
  h.click('reset');for(let i=0;i<2400;i++)h.advance(.25);
  assert.equal(h.run('activeTime'),600);assert.equal(h.run('observationTimes[0]'),0);
  assert.ok(h.run('observations.length')>=2401);
- const original=h.run('JSON.stringify([observations,observationTimes])');h.run('plottedHistory()');
+ const original=h.run('JSON.stringify([observations,observationTimes])');
+ const points=JSON.parse(h.run('JSON.stringify(plottedHistory())'));
+ const recorded=JSON.parse(h.run('JSON.stringify(observations.map((value,i)=>[observationTimes[i],value]))'));
+ assert.deepEqual(points.slice(0,-1),recorded);
+ assert.deepEqual(points.at(-1),[600,h.run('progressValue')]);
+ assert.equal(h.elements.get('trace').attrs.d.split(' ').length,points.length);
  assert.equal(h.run('JSON.stringify([observations,observationTimes])'),original);
  assert.equal(h.elements.get('trace-percentage').textContent,h.run("progressValue.toFixed(1)+'%'"));
  assert.ok(h.run('nodes[0].streak.textContent.endsWith("%")'));
  h.click('pause');const saved=h.run('JSON.stringify(session.getState())');h.advance(50);h.retrieve();
  assert.equal(h.run('JSON.stringify(session.getState())'),saved);
+});
+test('raw history renders straight segments at recorded times, including simultaneous jumps',()=>{
+ const h=host();h.advance(10);
+ h.run('observations=[0,70,20,80,30];observationTimes=[0,1,1,4,9];render(0)');
+ const value=h.run('progressValue');
+ const samples=[[0,0],[1,70],[1,20],[4,80],[9,30],[10,value]];
+ assert.deepEqual(JSON.parse(h.run('JSON.stringify(plottedHistory())')),samples);
+ const expected=samples.map(([time,progress],i)=>
+   (i?'L':'M')+(20+time/10*1160).toFixed(2)+','+(498-progress/100*470).toFixed(2)).join(' ');
+ assert.equal(h.elements.get('trace').attrs.d,expected);
+ assert.equal(h.run("tuningInputs.some(v=>['rawSeconds','settleSeconds','maxWindowSeconds','maxBlend'].includes(v.key))"),false);
+ h.click('reset');
+ assert.deepEqual(JSON.parse(h.run('JSON.stringify(plottedHistory())')),[[0,0],[0,0]]);
 });
 test('completion ghosting, modal stats, review and replay remain functional',()=>{
  const h=host();for(let i=0;i<300 && !h.run('sessionComplete');i++){h.advance(.1);h.retrieve();}
