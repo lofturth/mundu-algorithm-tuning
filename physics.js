@@ -1,9 +1,7 @@
 /* DOM-free, deterministic session model. Classic browser script + CommonJS
  * export keep index.html usable directly via file:// without a build/server.
  *
- * const session = MunduPhysics.createSession({ wordCount: 20, config: {
- *   unlock: { initialCount: 3 }
- * }});
+ * const session = MunduPhysics.createSession({ wordCount: 20 });
  * session.advance(0.1);       // explicit seconds, not a wall clock
  * session.retrieve();         // successful; session.skip() advances without a kick
  * const state = session.getState(); // detached inspection snapshot
@@ -19,7 +17,7 @@
   const DEFAULTS = Object.freeze({
     bounds: Object.freeze({ top:100, bottom:0 }),
     motion: Object.freeze({ topFallingSpeed:1, kickHeightPercent:25, bottomToTopMultiplier:5, gravityReductionPercent:5 }),
-    unlock: Object.freeze({ initialCount:1, threshold:50 }),
+    unlock: Object.freeze({ threshold:50 }),
     finish: Object.freeze({ threshold:90 }),
     instantPosition:false
   });
@@ -41,7 +39,6 @@
     const {bounds:b,motion:m,unlock:u,finish:f}=config;
     if (!(b.bottom===0 && b.top===100 && b.bottom<u.threshold &&
       u.threshold<f.threshold && f.threshold<b.top && m.topFallingSpeed>0 && m.kickHeightPercent>=1 && m.kickHeightPercent<=100 && Number.isFinite(m.topFallingSpeed*m.bottomToTopMultiplier) && m.bottomToTopMultiplier>=1 && m.gravityReductionPercent>=0 && m.gravityReductionPercent<=10 &&
-      Number.isInteger(u.initialCount) && u.initialCount>=1 &&
       typeof config.instantPosition==='boolean')) throw new RangeError('Invalid physics configuration');
     return config;
   }
@@ -124,7 +121,7 @@
     let state={config,words:vocabulary.map((entry,i)=>({
       english:Array.isArray(entry)?String(entry[0]):String(entry.english ?? entry),
       spanish:Array.isArray(entry)?String(entry[1] ?? ''):String(entry.spanish ?? ''),
-      streak:0,unlocked:i<config.unlock.initialCount,
+      streak:0,unlocked:i===0,
       initialDepth:config.bounds.bottom,depth:config.bounds.bottom,shown:config.bounds.bottom
     })),time:0,paused:false,complete:false,selectedIndex:0,selectedAt:0,hintVisible:false,skippedIndex:-1,retrievalCount:0,skipCount:0,lastRetrieval:null};
     function lowestIndex() {

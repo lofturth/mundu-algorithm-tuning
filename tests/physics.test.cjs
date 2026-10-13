@@ -1,5 +1,13 @@
 const test=require('node:test'),assert=require('node:assert/strict');
 const {Physics:P,stateOf}=require('./physics-harness.cjs').testPhysics();
+function sessionWithUnlocked(options) {
+ const initial=options.config?.unlock?.initialCount ?? 1;
+ const config={...options.config};
+ if(config.unlock){config.unlock={...config.unlock};delete config.unlock.initialCount;}
+ const session=P.createSession({...options,config});
+ stateOf(session).words.forEach((word,i)=>word.unlocked=i<initial);
+ return session;
+}
 const reward=t=>.5+1.5*Math.exp(-1.5*Math.max(0,t));
 const near=(a,b)=>assert.ok(Math.abs(a-b)<1e-9,`${a} != ${b}`);
 function setPositions(s,positions,shown=positions){const state=stateOf(s);positions.forEach((p,i)=>{state.words[i].depth=p;state.words[i].shown=shown[i];});}
@@ -53,7 +61,7 @@ test('hint state does not impose an additional reward penalty',()=>{
  const answer=s.retrieve();near(answer.latency,0);near(answer.multiplier,reward(answer.latency));
 });
 test('skip gives no kick, no success, and moves to the next-lowest active prompt',()=>{
- const s=P.createSession({wordCount:4,config:{unlock:{initialCount:3}}});
+ const s=sessionWithUnlocked({wordCount:4,config:{unlock:{initialCount:3}}});
  setPositions(s,[10,20,30,0]);s.advance(2);const before=s.getState(),result=s.skip(),after=s.getState();
  assert.equal(result.kind,'skip');assert.equal(result.lift,0);assert.equal(result.index,0);
  assert.equal(after.retrievalCount,before.retrievalCount);assert.equal(after.skipCount,1);
@@ -69,7 +77,7 @@ test('single active word skip restarts its timer; the next prompt gets a full tw
  s.advance(.1);assert.equal(s.getState().hintVisible,true);
 });
 test('lowest selection is deterministic, ignores locks, and resets the prompt timer',()=>{
- const s=P.createSession({wordCount:5,config:{unlock:{initialCount:3}}});
+ const s=sessionWithUnlocked({wordCount:5,config:{unlock:{initialCount:3}}});
  assert.equal(s.getLowestIndex(),0);s.retrieve();assert.equal(s.getLowestIndex(),1);
  s.advance(.1);near(s.retrieve().latency,.1);assert.equal(s.getLowestIndex(),2);
  const one=P.createSession({wordCount:1});one.advance(4);one.retrieve();one.advance(.1);near(one.retrieve().latency,.1);
@@ -83,12 +91,12 @@ test('successful kicks clamp at 100 with no extra stored lift or headroom',()=>{
 test('arbitrary dataset sizes, one-word start, stationary locked words, and no streak gravity effect',()=>{
  for(const size of [1,5,31]){const s=P.createSession({wordCount:size});assert.equal(s.getState().words.length,size);
  assert.equal(s.getState().words.filter(w=>w.unlocked).length,1);assert.ok(s.getState().words.every(w=>w.depth===0));assert.equal(s.getProgress(),0);}
- const s=P.createSession({wordCount:4,config:{unlock:{initialCount:3}}});setPositions(s,[50,50,0,0]);
+ const s=sessionWithUnlocked({wordCount:4,config:{unlock:{initialCount:3}}});setPositions(s,[50,50,0,0]);
  const state=stateOf(s);state.words[1].streak=20;s.advance(1);
  near(s.getState().words[0].depth,s.getState().words[1].depth);assert.equal(s.getState().words[3].depth,0);
 });
 test('strict NEW WORDS contact unlocks one ordered word; no relocking or progress dilution',()=>{
- const s=P.createSession({wordCount:5,config:{unlock:{initialCount:3}}}),threshold=P.DEFAULTS.unlock.threshold;
+ const s=sessionWithUnlocked({wordCount:5,config:{unlock:{initialCount:3}}}),threshold=P.DEFAULTS.unlock.threshold;
  setPositions(s,[threshold,threshold,threshold,0,0]);assert.equal(s.advance(0).unlockedIndex,null);
  setPositions(s,[threshold+.1,threshold+.1,threshold+.1,0,0]);const before=s.getProgress();
  assert.equal(s.advance(0).unlockedIndex,3);near(s.getProgress(),before);assert.equal(s.advance(0).unlockedIndex,null);
@@ -115,7 +123,7 @@ test('pause freezes hint timer, physics and input; resume excludes paused durati
  s.setPaused(false);s.advance(.1);assert.equal(s.getState().hintVisible,true);near(s.retrieve().multiplier,reward(2));
 });
 test('fresh sessions replay mixed retrieval/skip runs deterministically and getState stays detached',()=>{
- const a=P.createSession({wordCount:8,config:{unlock:{initialCount:3}}}),b=P.createSession({wordCount:8,config:{unlock:{initialCount:3}}});
+ const a=sessionWithUnlocked({wordCount:8,config:{unlock:{initialCount:3}}}),b=sessionWithUnlocked({wordCount:8,config:{unlock:{initialCount:3}}});
  for(const s of [a,b]){s.advance(2);s.skip();s.advance(2);}
  for(let i=0;i<40;i++){for(const s of [a,b]){s.advance(.17);if(i%7===0)s.skip();else s.retrieve();}}
  assert.deepEqual(a.getState(),b.getState());const snapshot=a.getState();snapshot.words[0].depth=-99;assert.notEqual(a.getState().words[0].depth,-99);
@@ -271,7 +279,7 @@ test('unlocked-word gravity follows the multiplicative rule and excludes locked 
  const c=P.createSession({config:{motion:{gravityReductionPercent:2}}}).getState().config;
  for(const n of [1,5,10,20,30]){
   near(P.gravityMultiplier(c,n),Math.pow(.98,n-1));
-  const s=P.createSession({wordCount:35,config:{unlock:{initialCount:n},motion:{gravityReductionPercent:2}}}),state=s.getState();
+  const s=sessionWithUnlocked({wordCount:35,config:{unlock:{initialCount:n},motion:{gravityReductionPercent:2}}}),state=s.getState();
   assert.equal(state.unlockedWordCount,n);near(state.gravityMultiplier,Math.pow(.98,n-1));
   for(const height of [0,50,100])near(P.fallingSpeed(height,c,n),P.fallingSpeed(height,c)*state.gravityMultiplier);
   near(state.fieldFallTime,P.fieldFallTime(c)/state.gravityMultiplier);
@@ -282,7 +290,7 @@ test('unlocked-word gravity follows the multiplicative rule and excludes locked 
 });
 
 test('zero reduction preserves original falling and kicks, including many active words',()=>{
- const s=P.createSession({wordCount:30,config:{motion:{gravityReductionPercent:0},unlock:{initialCount:30}}});
+ const s=sessionWithUnlocked({wordCount:30,config:{motion:{gravityReductionPercent:0},unlock:{initialCount:30}}});
  const c=s.getState().config,original=P.createSession().getState().config;
  assert.equal(s.getState().gravityMultiplier,1);
  for(const height of [0,20,60,100]){
@@ -306,7 +314,7 @@ test('kick destinations are unchanged across unlocked counts, including hints an
  for(const height of [0,20,60,95])for(const [latency,hint] of [[0,false],[.5,false],[1,false],[1.5,false],[2,true],[20,true]]){
   let reference;
   for(const n of [1,5,30]){
-   const s=P.createSession({wordCount:31,config:{unlock:{initialCount:n}}});
+   const s=sessionWithUnlocked({wordCount:31,config:{unlock:{initialCount:n}}});
    const saved=stateOf(s);saved.time=latency;saved.selectedAt=0;saved.hintVisible=hint;
    saved.words.forEach((word,i)=>{if(word.unlocked){word.depth=i===0?height:100;word.shown=i===0?height:0;}});
    const result=s.retrieve(),end=s.getState().words[0].depth;
@@ -319,8 +327,8 @@ test('kick destinations are unchanged across unlocked counts, including hints an
 });
 
 test('gravity settings and unlocked counts replay deterministically; overrides take effect live',()=>{
- const s=P.createSession({wordCount:8,config:{unlock:{initialCount:3},motion:{gravityReductionPercent:5}}});
- const replay=P.createSession({wordCount:8,config:{unlock:{initialCount:3},motion:{gravityReductionPercent:5}}});
+ const s=sessionWithUnlocked({wordCount:8,config:{unlock:{initialCount:3},motion:{gravityReductionPercent:5}}});
+ const replay=sessionWithUnlocked({wordCount:8,config:{unlock:{initialCount:3},motion:{gravityReductionPercent:5}}});
  for(const run of [s,replay]){run.advance(1);run.skip();run.advance(2);}
  for(let i=0;i<20;i++)for(const run of [s,replay]){run.advance(.2);run.retrieve();}
  assert.deepEqual(s.getState(),replay.getState());
@@ -345,7 +353,7 @@ test('normal bottom kick reaches configured reference height across speed, R and
 
 test('reference-height retrieval bonuses scale time including hinted retrievals',()=>{
  for(const R of [1,3,10])for(const n of [1,5,30])for(const [latency,hint,multiplier] of [[0,false],[1,false],[2,true],[20,true]].map(([t,h])=>[t,h,reward(t)])){
-  const s=P.createSession({wordCount:31,config:{motion:{kickHeightPercent:25,bottomToTopMultiplier:R},unlock:{initialCount:n}}});
+  const s=sessionWithUnlocked({wordCount:31,config:{motion:{kickHeightPercent:25,bottomToTopMultiplier:R},unlock:{initialCount:n}}});
   const saved=stateOf(s);saved.time=latency;saved.selectedAt=0;saved.hintVisible=hint;
   saved.words.forEach((w,i)=>{if(w.unlocked){w.depth=i===0?0:100;w.shown=0;}});
   const baseline=P.timeCoordinate(25,saved.config,n),result=s.retrieve(),height=s.getState().words[0].depth;
@@ -391,4 +399,11 @@ test('production API keeps detached inspection but exposes no restoration or sch
  const view=session.getState();assert.equal('version' in view,false);
  view.words[0].depth=99;view.config.motion.kickHeightPercent=100;view.retrievalCount=900;
  const actual=session.getState();assert.equal(actual.words[0].depth,0);assert.equal(actual.config.motion.kickHeightPercent,25);assert.equal(actual.retrievalCount,0);
+});
+
+test('starting count is fixed at one and is not configurable',()=>{
+ for(const size of [1,10,30]){
+  const s=P.createSession({wordCount:size});assert.equal(s.getState().unlockedWordCount,1);
+  assert.throws(()=>s.configure({unlock:{initialCount:2}}),RangeError);
+ }
 });

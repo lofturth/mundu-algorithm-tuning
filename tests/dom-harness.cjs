@@ -6,6 +6,7 @@ class Element {
   constructor(){this.attrs={};this.children=[];this.listeners={};this.hidden=false;this.open=false;this.style={setProperty(){}};this.classes=new Set();this.classList={toggle:(k,v)=>{if(v)this.classes.add(k);else this.classes.delete(k);}};this.parentElement={classList:{toggle(){}}};}
   setAttribute(k,v){this.attrs[k]=v;if(k==='id')this.register?.(v,this);}
   appendChild(child){this.children.push(child);}
+  replaceChildren(){this.children=[];}
   addEventListener(k,v){(this.listeners[k]??=[]).push(v);}
   dispatch(k,e={}){for(const listener of this.listeners[k]??[])listener(e);}
   set value(value){this._value=String(value);}

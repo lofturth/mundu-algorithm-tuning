@@ -5,7 +5,7 @@ const fs=require('node:fs');
 const path=require('node:path');
 const {makeHost}=require('./dom-harness.cjs');
 const fixtures=require('./legacy-fixtures.json');
-const Physics=require('../physics.js');
+const {Physics,stateOf}=require('./physics-harness.cjs').testPhysics();
 const base=path.join(__dirname,'..');
 const files={html:fs.readFileSync(path.join(base,'index.html'),'utf8'),app:fs.readFileSync(path.join(base,'app.js'),'utf8'),physics:fs.readFileSync(path.join(base,'physics.js'),'utf8')};
 function host(options={}){return makeHost({...files,...options});}
@@ -17,8 +17,9 @@ function compare(actual,expected){
 const snapshot=h=>JSON.parse(h.run(`JSON.stringify({time:activeTime,paused,complete:sessionComplete,selectedIndex:session.getState().selectedIndex,selectedAt:session.getState().selectedAt,retrievalCount:count,progress:progressValue,words:words.map(w=>[w.initialDepth,w.depth,w.shown,w.streak,w.unlocked])})`));
 for(const fixture of fixtures)test(`prototype/engine parity: initial=${fixture.options.initialCount}, instant=${fixture.options.instantPosition}`,()=>{
  const h=host({instantPosition:fixture.options.instantPosition});
- h.run(`UNLOCK.initialCount=${fixture.options.initialCount};reset();`);
- const engine=Physics.createSession({wordCount:10,config:{unlock:{initialCount:fixture.options.initialCount},instantPosition:fixture.options.instantPosition}});
+ h.run(`testState(session).words.forEach((w,i)=>w.unlocked=i<${fixture.options.initialCount});syncSession();render(0);`);
+ const engine=Physics.createSession({wordCount:10,config:{instantPosition:fixture.options.instantPosition}});
+ stateOf(engine).words.forEach((w,i)=>w.unlocked=i<fixture.options.initialCount);
  const expected=()=>{const s=engine.getState();return {
    time:s.time,paused:s.paused,complete:s.complete,selectedIndex:s.selectedIndex,
    selectedAt:s.selectedAt,retrievalCount:s.retrievalCount,progress:engine.getProgress(),
@@ -43,8 +44,7 @@ test('local scripts load in order; controls, tuning and default settings still w
  assert.equal(h.run("tuningInputs.some(v=>v.key==='jumpEase')"),false);
  assert.equal('responseRate' in h.run('session.getState().config.bounds'),false);
  assert.ok(files.html.includes('PROGRESS HISTORY'));
- h.settings('initialCount',3,'UNLOCK');assert.equal(h.run('words.filter(w=>w.unlocked).length'),1);
- h.click('reset');assert.equal(h.run('words.filter(w=>w.unlocked).length'),3);
+ assert.equal(h.run("tuningInputs.some(v=>v.key==='initialCount')"),false);
  h.click('tuning-defaults');h.click('reset');
  assert.equal(h.run('words.filter(w=>w.unlocked).length'),1);
  assert.equal(h.run('session.getState().config.motion.topFallingSpeed'),1);
@@ -247,4 +247,57 @@ test('every reward-curve vertex and live indicator uses the same exponential fun
  assert.equal(h.elements.get('target-hint').hidden,false);assert.ok(!h.elements.get('target-hint').textContent.includes('HALF KICK'));
  h.retrieve();compare(h.run('lastMeasurement.multiplier'),reward(3));
  assert.ok(h.elements.get('feedback').textContent.includes('hinted / '+reward(3).toFixed(2)+'× kick'));
+});
+
+for(const size of [1,10,30])test(`Total words ${size}: reset, progress, sequential unlocking and completion`,()=>{
+ const h=host();h.settings('totalWords',size,'DATASET');
+ assert.equal(h.run('words.length'),10); // Editing does not replace the active session.
+ h.click('reset');
+ assert.equal(h.run('words.length'),size);assert.equal(h.run('nodes.length'),size);
+ assert.equal(h.run('words.filter(w=>w.unlocked).length'),1);
+ assert.equal(h.run('session.getState().gravityMultiplier'),1);
+ assert.equal(h.run('progressValue'),0);
+ h.run('{const state=testState(session);state.words[0].depth=45;state.words[0].shown=45;syncSession();render(0);}');
+ compare(h.run('progressValue'),50/size);
+ for(let i=1;i<size;i++){
+  h.run('testState(session).words.forEach(w=>{if(w.unlocked){w.depth=51;w.shown=51;}});acceptTransition(session.advance(0));render(0);');
+  assert.equal(h.run('words.filter(w=>w.unlocked).length'),i+1);
+  assert.equal(h.run(`words[${i}].depth`),0);
+  compare(h.run('session.getState().gravityMultiplier'),.95**i);
+  assert.equal(h.run('sessionComplete'),false);
+ }
+ h.run('testState(session).words.forEach(w=>{w.depth=90;w.shown=90;});acceptTransition(session.advance(0));render(0);');
+ assert.equal(h.run('sessionComplete'),false);
+ h.run('testState(session).words.forEach(w=>{w.depth=91;w.shown=91;});acceptTransition(session.advance(0));render(0);');
+ assert.equal(h.run('sessionComplete && paused'),true);
+ assert.equal(h.run('progressValue'),100);
+ assert.equal(h.elements.get('completion-word-count').textContent,String(size));
+ h.click('reset');assert.equal(h.run('nodes.length'),size);
+ assert.equal(h.elements.get('bars').children.length,size*2);
+ assert.equal(h.run('words.filter(w=>w.unlocked).length'),1);
+});
+test('Total words rejects invalid values and restores the ten-word default',()=>{
+ const h=host();
+ for(const value of [0,31,1.5,'']){h.settings('totalWords',value,'DATASET');assert.equal(h.run('DATASET.totalWords'),10);}
+ h.settings('totalWords',30,'DATASET');h.click('reset');assert.equal(h.run('words.length'),30);
+ h.click('tuning-defaults');assert.equal(h.run('words.length'),30);
+ h.click('reset');assert.equal(h.run('words.length'),10);
+ assert.equal(h.run('words.filter(w=>w.unlocked).length'),1);
+});
+
+for(const size of [10,20,30])test(`vertical word labels stay centered and follow bars for ${size} words`,()=>{
+ const h=host();h.settings('totalWords',size,'DATASET');h.click('reset');
+ for(const height of [0,50,100]){
+  h.run(`testState(session).words.forEach(w=>{w.depth=${height};w.shown=${height};});syncSession();render(0);`);
+  const labels=JSON.parse(h.run('JSON.stringify(nodes.map(n=>({label:n.label.attrs,percentage:n.streak.attrs,index:n.index.attrs})))'));
+  labels.forEach((n,i)=>{
+   const x=20+(i+.5)*1160/size,y=502-height*442/100;
+   assert.equal(n.label.transform,`translate(${x},${y-8}) rotate(-90)`);
+   assert.equal(n.label['text-anchor'],'start');
+   assert.equal(n.label['dominant-baseline'],'central');
+   assert.equal(n.label['font-size'],14);assert.equal(n.percentage.transform,undefined);
+   assert.equal(n.percentage.y,y+16);assert.equal(n.index.y,540);
+  });
+ }
+ assert.ok(files.html.includes('viewBox="0 0 1270 560"'));
 });

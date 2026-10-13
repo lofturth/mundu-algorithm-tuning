@@ -11,6 +11,7 @@ const PROGRESS = { sampleSeconds:0.25 };
 const TRACE_LABEL = { gap:12 };
 const FINISH = { ...MunduPhysics.DEFAULTS.finish };
 // NEW WORDS must remain strictly below completion and above the starting floor.
+const DATASET = { totalWords:10 };
 const UNLOCK = { ...MunduPhysics.DEFAULTS.unlock };
 let sessionComplete=false, completionPresented=false;
 let session, selectedIndex=0, pendingUnlock=false;
@@ -20,7 +21,12 @@ let gravityReadout;
 const COLOR = { grid:'#202738', muted:'#657087', pink:'#ED4CA8' };
 const VOCABULARY = [ ['river','río'], ['light','luz'], ['apple','manzana'],
   ['night','noche'], ['house','casa'], ['water','agua'], ['bread','pan'],
-  ['bird','pájaro'], ['dream','sueño'], ['window','ventana'] ];
+  ['bird','pájaro'], ['dream','sueño'], ['window','ventana'],
+  ['sun','sol'], ['moon','luna'], ['star','estrella'], ['sky','cielo'],
+  ['sea','mar'], ['mountain','montaña'], ['tree','árbol'], ['flower','flor'],
+  ['road','camino'], ['city','ciudad'], ['book','libro'], ['table','mesa'],
+  ['chair','silla'], ['door','puerta'], ['fire','fuego'], ['earth','tierra'],
+  ['hand','mano'], ['eye','ojo'], ['heart','corazón'], ['time','tiempo'] ];
 const NS = 'http://www.w3.org/2000/svg';
 const el = id => document.getElementById(id);
 const screenY = position => TUNE.bottom-position/100*(TUNE.bottom-TUNE.reachableTop);
@@ -55,13 +61,13 @@ function acceptTransition(result) {
 }
 function reset() {
   if (el('completion-screen').open) el('completion-screen').close();
-  session=MunduPhysics.createSession({vocabulary:VOCABULARY,config:physicsConfig()});
-  wordFlashes=VOCABULARY.map(()=>0); pendingUnlock=false; completionPresented=false;
+  session=MunduPhysics.createSession({vocabulary:VOCABULARY.slice(0,DATASET.totalWords),config:physicsConfig()});
+  wordFlashes=Array.from({length:DATASET.totalWords},()=>0); pendingUnlock=false; completionPresented=false;
   kickGraphEnded=false;
   observations=[0]; observationTimes=[0]; nextSampleTime=PROGRESS.sampleSeconds;
   progressValue=0; lastMeasurement=null;
-  for (const node of nodes) { node.aboveFinish=undefined; node.reactivation=0; }
   syncSession();
+  buildSvg();
   lastTime=performance.now(); updateStatus(); render(0); updateReadouts();
 }
 
@@ -119,6 +125,8 @@ function plottedHistory() {
 }
 
 function buildSvg() {
+  for (const id of ['grid','bars','labels']) el(id).replaceChildren();
+  nodes.length=0;
   svgNode('line',{id:'unlock-line',x1:TUNE.left,y1:screenY(UNLOCK.threshold),x2:TUNE.right,y2:screenY(UNLOCK.threshold),
     stroke:'#8b7aa8','stroke-width':1,'stroke-dasharray':'3 8',opacity:0.65},el('labels'));
   const unlockLabel=svgNode('text',{id:'unlock-label',x:TUNE.left+3,y:screenY(UNLOCK.threshold)-7,
@@ -134,14 +142,14 @@ function buildSvg() {
     const text=svgNode('text',{x:1190,y:y+3,fill:COLOR.muted,'font-size':8,'text-anchor':'end'},el('grid'));
     text.textContent=100-i*25;
   }
-  const slot=(TUNE.right-TUNE.left)/VOCABULARY.length;
-  VOCABULARY.forEach((pair,i) => {
+  const slot=(TUNE.right-TUNE.left)/words.length;
+  words.forEach((word,i) => {
     const x=TUNE.left+i*slot+5, width=slot-10;
     const guide=svgNode('line',{x1:x+width/2,y1:TUNE.top,x2:x+width/2,y2:TUNE.bottom,stroke:COLOR.grid,'stroke-width':0.6,'stroke-dasharray':'2 8'},el('grid'));
     const bar=svgNode('rect',{x,y:TUNE.top,width,height:0,fill:'url(#bar-fill)'},el('bars'));
     const edge=svgNode('line',{x1:x,y1:0,x2:x+width,y2:0,stroke:COLOR.pink,'stroke-width':1.3},el('bars'));
-    const label=svgNode('text',{x:x+width/2,y:0,fill:'#e3e8ef','font-size':14,'text-anchor':'middle'},el('labels'));
-    label.textContent=pair[0];
+    const label=svgNode('text',{x:0,y:0,fill:'#e3e8ef','font-size':14,'text-anchor':'start','dominant-baseline':'central'},el('labels'));
+    label.textContent=word.english;
     const streak=svgNode('text',{x:x+width/2,y:0,fill:COLOR.muted,'font-size':8,'text-anchor':'middle'},el('labels'));
     const index=svgNode('text',{x:x+width/2,y:540,fill:COLOR.muted,'font-size':8,'text-anchor':'middle'},el('grid'));
     index.textContent=String(i+1).padStart(2,'0');
@@ -204,7 +212,7 @@ function render(dt) {
     bar.setAttribute('height',y-TUNE.top);
     edge.setAttribute('y1',y); edge.setAttribute('y2',y);
     edge.setAttribute('stroke-width',1.3+word.flash*1.5);
-    label.setAttribute('y',y-12);
+    label.setAttribute('transform',`translate(${TUNE.left+(i+0.5)*(TUNE.right-TUNE.left)/words.length},${y-8}) rotate(-90)`);
     label.setAttribute('fill',word.flash>0.2 || node.reactivation>0?COLOR.pink:'#e3e8ef');
     streak.setAttribute('y',y+16); streak.textContent=Math.round(Math.min(word.depth,word.shown))+'%';
     streak.setAttribute('font-size',15);
@@ -239,7 +247,7 @@ function render(dt) {
 function updateReadouts() {
   el('count').textContent=String(count).padStart(3,'0');
   el('score').textContent=progressValue.toFixed(1);
-  el('feedback').textContent=lastMeasurement ? `${lastMeasurement.word} → ${lastMeasurement.translation} / ${lastMeasurement.kind==='retrieval'?(lastMeasurement.hintVisible?'hinted':'unhinted')+' / '+lastMeasurement.multiplier.toFixed(2)+'× kick'+' / ↑'+lastMeasurement.lift.toFixed(1)+' pp':'skipped / no kick'}` : 'Ten words. One key. Keep them afloat.';
+  el('feedback').textContent=lastMeasurement ? `${lastMeasurement.word} → ${lastMeasurement.translation} / ${lastMeasurement.kind==='retrieval'?(lastMeasurement.hintVisible?'hinted':'unhinted')+' / '+lastMeasurement.multiplier.toFixed(2)+'× kick'+' / ↑'+lastMeasurement.lift.toFixed(1)+' pp':'skipped / no kick'}` : `${words.length} words. One key. Keep them afloat.`;
 }
 
 function updateStatus() {
@@ -288,8 +296,9 @@ function frame(time) {
 }
 // Live tuning stays separate from session state. Reload restores these defaults.
 const SETTINGS = [
+  {name:'VOCABULARY SET',values:DATASET,fields:[
+    ['totalWords','Total words','Applied on the next session Reset',1,VOCABULARY.length,1]]},
   {name:'PROGRESSIVE WORDS',values:UNLOCK,fields:[
-    ['initialCount','Starting words','Applied on the next session Reset',1,10,1],
     ['threshold','NEW WORDS position (%)','0% = bottom; must stay below completion',100/442,44000/442,0.1]]},
   {name:'SHARED LINEAR PHYSICS',values:MOTION,fields:[
     ['topFallingSpeed','Top falling speed','At top; percentage points / second',0.01,15,0.01],
@@ -340,7 +349,9 @@ function buildTuning() {
         if (input.value.trim()==='' || !Number.isFinite(value) || value<min || value>max || (step===1 && !Number.isInteger(value))) return false;
         if (key==='threshold' && ((group.values===UNLOCK && value>=FINISH.threshold) || (group.values===FINISH && value<=UNLOCK.threshold))) return false;
         if (!paused) advanceTo(performance.now());
-        group.values[key]=value; refreshTuning(group.values===FINISH); return true;
+        group.values[key]=value;
+        if(group.values!==DATASET)refreshTuning(group.values===FINISH);
+        return true;
       };
       input.addEventListener('input',commit);
       input.addEventListener('change',() => { if (!commit()) input.value=Number(group.values[key].toFixed(6)); });
@@ -362,4 +373,4 @@ function buildCompletionScreen() {
     el('completion-screen').close(); el('reset').focus();
   });
 }
-buildSvg(); reset(); buildTuning(); buildCompletionScreen(); requestAnimationFrame(frame);
+reset(); buildTuning(); buildCompletionScreen(); requestAnimationFrame(frame);
