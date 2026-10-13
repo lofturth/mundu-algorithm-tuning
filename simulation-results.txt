@@ -1,0 +1,73 @@
+Mündu deterministic simulations — default physics
+Update step: 0.01666667 s (60 Hz); limit: 60:00.00 simulated time.
+Completion time is measured at the first update where the real engine reports completion.
+An unfinished run has no completion time; elapsed time is the simulation limit.
+
+Words  Interval (s)  Successes  Completion  Elapsed   Status    
+-----  ------------  ---------  ----------  --------  ----------
+5      2             1800       —           60:00.00  Unfinished
+5      5             720        —           60:00.00  Unfinished
+5      10            360        —           60:00.00  Unfinished
+5      15            240        —           60:00.00  Unfinished
+10     2             1800       —           60:00.00  Unfinished
+10     5             720        —           60:00.00  Unfinished
+10     10            360        —           60:00.00  Unfinished
+10     15            240        —           60:00.00  Unfinished
+15     2             1800       —           60:00.00  Unfinished
+15     5             720        —           60:00.00  Unfinished
+15     10            360        —           60:00.00  Unfinished
+15     15            240        —           60:00.00  Unfinished
+20     2             1800       —           60:00.00  Unfinished
+20     5             720        —           60:00.00  Unfinished
+20     10            360        —           60:00.00  Unfinished
+20     15            240        —           60:00.00  Unfinished
+25     2             1800       —           60:00.00  Unfinished
+25     5             720        —           60:00.00  Unfinished
+25     10            360        —           60:00.00  Unfinished
+25     15            240        —           60:00.00  Unfinished
+30     2             1800       —           60:00.00  Unfinished
+30     5             720        —           60:00.00  Unfinished
+30     10            360        —           60:00.00  Unfinished
+30     15            240        —           60:00.00  Unfinished
+
+SUMMARY BY RETRIEVAL INTERVAL
+
+Every 2 seconds — 0/6 completed
+Words  Successes  Completion  Status    
+-----  ---------  ----------  ----------
+5      1800       —           Unfinished
+10     1800       —           Unfinished
+15     1800       —           Unfinished
+20     1800       —           Unfinished
+25     1800       —           Unfinished
+30     1800       —           Unfinished
+
+Every 5 seconds — 0/6 completed
+Words  Successes  Completion  Status    
+-----  ---------  ----------  ----------
+5      720        —           Unfinished
+10     720        —           Unfinished
+15     720        —           Unfinished
+20     720        —           Unfinished
+25     720        —           Unfinished
+30     720        —           Unfinished
+
+Every 10 seconds — 0/6 completed
+Words  Successes  Completion  Status    
+-----  ---------  ----------  ----------
+5      360        —           Unfinished
+10     360        —           Unfinished
+15     360        —           Unfinished
+20     360        —           Unfinished
+25     360        —           Unfinished
+30     360        —           Unfinished
+
+Every 15 seconds — 0/6 completed
+Words  Successes  Completion  Status    
+-----  ---------  ----------  ----------
+5      240        —           Unfinished
+10     240        —           Unfinished
+15     240        —           Unfinished
+20     240        —           Unfinished
+25     240        —           Unfinished
+30     240        —           Unfinished

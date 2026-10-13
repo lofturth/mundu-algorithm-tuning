@@ -41,9 +41,9 @@
     </section>
 
     <section class="terminal" aria-label="Retrieval controls">
-      <div class="target"><span class="eyebrow">NEXT RETRIEVAL / LOWEST WORD</span><div><span class="chevron">›</span> <strong id="target-word">window</strong><span class="cursor">_</span><span id="target-streak" class="streak">STREAK 00</span></div></div>
-      <div class="instruction"><span id="prompt">LETTER = CORRECT / BACKSPACE = MISTAKE</span><span id="feedback">Ten words. One key. Keep them afloat.</span></div>
-      <div class="controls"><label for="speed">DRIFT<select id="speed"><option value="0.5">0.5×</option><option value="1" selected>1×</option><option value="2">2×</option></select></label><button id="pause" type="button">PAUSE <span>Ⅱ</span></button><button id="reset" type="button">RESET <span>↺</span></button></div>
+      <div class="target"><span class="eyebrow">NEXT RETRIEVAL / LOWEST WORD</span><div><span class="chevron">›</span> <strong id="target-word">window</strong><span class="cursor">_</span><span id="target-streak" class="streak">STREAK 00</span><span id="target-hint" class="streak" hidden></span></div></div>
+      <div class="instruction"><span id="prompt">LETTER = RETRIEVE / ESC = SKIP</span><span id="feedback">Ten words. One key. Keep them afloat.</span></div>
+      <div class="controls"><button id="pause" type="button">PAUSE <span>Ⅱ</span></button><button id="reset" type="button">RESET <span>↺</span></button></div>
     </section>
     <footer><span>REPETITION BUILDS FLUENCY.</span><span>SIMULATED ANSWERS <span class="divider">/</span> PROGRESS FROM WORD POSITIONS</span></footer>
   </main>

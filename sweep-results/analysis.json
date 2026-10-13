@@ -1,0 +1,1935 @@
+{
+  "marginals": {
+    "kick": [
+      {
+        "value": 15,
+        "configurations": 26,
+        "runs": 624,
+        "completed": 38,
+        "completionRate": 0.060897435897435896,
+        "completedRetrievalsPerWord": {
+          "min": 5.6,
+          "median": 9.766666666666666,
+          "max": 22.6
+        }
+      },
+      {
+        "value": 25,
+        "configurations": 36,
+        "runs": 864,
+        "completed": 157,
+        "completionRate": 0.18171296296296297,
+        "completedRetrievalsPerWord": {
+          "min": 3,
+          "median": 4.76,
+          "max": 19.933333333333334
+        }
+      },
+      {
+        "value": 35,
+        "configurations": 26,
+        "runs": 624,
+        "completed": 164,
+        "completionRate": 0.26282051282051283,
+        "completedRetrievalsPerWord": {
+          "min": 2,
+          "median": 3.6833333333333336,
+          "max": 12.4
+        }
+      },
+      {
+        "value": 45,
+        "configurations": 32,
+        "runs": 768,
+        "completed": 248,
+        "completionRate": 0.3229166666666667,
+        "completedRetrievalsPerWord": {
+          "min": 2,
+          "median": 2.9,
+          "max": 8
+        }
+      },
+      {
+        "value": 55,
+        "configurations": 30,
+        "runs": 720,
+        "completed": 263,
+        "completionRate": 0.36527777777777776,
+        "completedRetrievalsPerWord": {
+          "min": 2,
+          "median": 2,
+          "max": 4.4
+        }
+      }
+    ],
+    "topSpeed": [
+      {
+        "value": 0.1,
+        "configurations": 33,
+        "runs": 792,
+        "completed": 333,
+        "completionRate": 0.42045454545454547,
+        "completedRetrievalsPerWord": {
+          "min": 2,
+          "median": 3,
+          "max": 13
+        }
+      },
+      {
+        "value": 0.3,
+        "configurations": 32,
+        "runs": 768,
+        "completed": 231,
+        "completionRate": 0.30078125,
+        "completedRetrievalsPerWord": {
+          "min": 2,
+          "median": 3,
+          "max": 22.6
+        }
+      },
+      {
+        "value": 0.5,
+        "configurations": 39,
+        "runs": 936,
+        "completed": 193,
+        "completionRate": 0.20619658119658119,
+        "completedRetrievalsPerWord": {
+          "min": 2,
+          "median": 3,
+          "max": 21.6
+        }
+      },
+      {
+        "value": 0.7,
+        "configurations": 27,
+        "runs": 648,
+        "completed": 81,
+        "completionRate": 0.125,
+        "completedRetrievalsPerWord": {
+          "min": 2,
+          "median": 3,
+          "max": 19.933333333333334
+        }
+      },
+      {
+        "value": 1,
+        "configurations": 19,
+        "runs": 456,
+        "completed": 32,
+        "completionRate": 0.07017543859649122,
+        "completedRetrievalsPerWord": {
+          "min": 2,
+          "median": 4.566666666666666,
+          "max": 16
+        }
+      }
+    ],
+    "bottomSpeed": [
+      {
+        "value": 0.5,
+        "configurations": 18,
+        "runs": 432,
+        "completed": 134,
+        "completionRate": 0.3101851851851852,
+        "completedRetrievalsPerWord": {
+          "min": 2,
+          "median": 3.2,
+          "max": 22.6
+        }
+      },
+      {
+        "value": 1,
+        "configurations": 34,
+        "runs": 816,
+        "completed": 253,
+        "completionRate": 0.31004901960784315,
+        "completedRetrievalsPerWord": {
+          "min": 2,
+          "median": 3,
+          "max": 21.6
+        }
+      },
+      {
+        "value": 1.5,
+        "configurations": 31,
+        "runs": 744,
+        "completed": 184,
+        "completionRate": 0.24731182795698925,
+        "completedRetrievalsPerWord": {
+          "min": 2,
+          "median": 3,
+          "max": 16
+        }
+      },
+      {
+        "value": 2,
+        "configurations": 33,
+        "runs": 792,
+        "completed": 167,
+        "completionRate": 0.21085858585858586,
+        "completedRetrievalsPerWord": {
+          "min": 2,
+          "median": 3,
+          "max": 15.8
+        }
+      },
+      {
+        "value": 3,
+        "configurations": 34,
+        "runs": 816,
+        "completed": 132,
+        "completionRate": 0.16176470588235295,
+        "completedRetrievalsPerWord": {
+          "min": 2,
+          "median": 2.675,
+          "max": 15.8
+        }
+      }
+    ],
+    "completion": [
+      {
+        "value": 60,
+        "configurations": 35,
+        "runs": 840,
+        "completed": 298,
+        "completionRate": 0.3547619047619048,
+        "completedRetrievalsPerWord": {
+          "min": 2,
+          "median": 2.44,
+          "max": 10.45
+        }
+      },
+      {
+        "value": 70,
+        "configurations": 34,
+        "runs": 816,
+        "completed": 227,
+        "completionRate": 0.27818627450980393,
+        "completedRetrievalsPerWord": {
+          "min": 2,
+          "median": 3.2,
+          "max": 22.6
+        }
+      },
+      {
+        "value": 80,
+        "configurations": 46,
+        "runs": 1104,
+        "completed": 261,
+        "completionRate": 0.23641304347826086,
+        "completedRetrievalsPerWord": {
+          "min": 2,
+          "median": 3,
+          "max": 21.6
+        }
+      },
+      {
+        "value": 90,
+        "configurations": 35,
+        "runs": 840,
+        "completed": 84,
+        "completionRate": 0.1,
+        "completedRetrievalsPerWord": {
+          "min": 2,
+          "median": 3,
+          "max": 16.133333333333333
+        }
+      }
+    ]
+  },
+  "adjacentPairs": 163,
+  "edges": [
+    {
+      "a": "C007",
+      "b": "C099",
+      "axis": "kick",
+      "aCompleted": 4,
+      "bCompleted": 8,
+      "change": 4
+    },
+    {
+      "a": "C012",
+      "b": "C104",
+      "axis": "kick",
+      "aCompleted": 1,
+      "bCompleted": 4,
+      "change": 3
+    },
+    {
+      "a": "C013",
+      "b": "C105",
+      "axis": "kick",
+      "aCompleted": 3,
+      "bCompleted": 9,
+      "change": 6
+    },
+    {
+      "a": "C022",
+      "b": "C042",
+      "axis": "topSpeed",
+      "aCompleted": 5,
+      "bCompleted": 3,
+      "change": -2
+    },
+    {
+      "a": "C024",
+      "b": "C028",
+      "axis": "bottomSpeed",
+      "aCompleted": 4,
+      "bCompleted": 2,
+      "change": -2
+    },
+    {
+      "a": "C024",
+      "b": "C116",
+      "axis": "kick",
+      "aCompleted": 4,
+      "bCompleted": 4,
+      "change": 0
+    },
+    {
+      "a": "C031",
+      "b": "C123",
+      "axis": "kick",
+      "aCompleted": 1,
+      "bCompleted": 4,
+      "change": 3
+    },
+    {
+      "a": "C040",
+      "b": "C132",
+      "axis": "kick",
+      "aCompleted": 0,
+      "bCompleted": 1,
+      "change": 1
+    },
+    {
+      "a": "C050",
+      "b": "C066",
+      "axis": "topSpeed",
+      "aCompleted": 1,
+      "bCompleted": 1,
+      "change": 0
+    },
+    {
+      "a": "C050",
+      "b": "C142",
+      "axis": "kick",
+      "aCompleted": 1,
+      "bCompleted": 4,
+      "change": 3
+    },
+    {
+      "a": "C052",
+      "b": "C144",
+      "axis": "kick",
+      "aCompleted": 1,
+      "bCompleted": 2,
+      "change": 1
+    },
+    {
+      "a": "C057",
+      "b": "C058",
+      "axis": "completion",
+      "aCompleted": 1,
+      "bCompleted": 1,
+      "change": 0
+    },
+    {
+      "a": "C057",
+      "b": "C149",
+      "axis": "kick",
+      "aCompleted": 1,
+      "bCompleted": 3,
+      "change": 2
+    },
+    {
+      "a": "C066",
+      "b": "C070",
+      "axis": "bottomSpeed",
+      "aCompleted": 1,
+      "bCompleted": 1,
+      "change": 0
+    },
+    {
+      "a": "C066",
+      "b": "C082",
+      "axis": "topSpeed",
+      "aCompleted": 1,
+      "bCompleted": 1,
+      "change": 0
+    },
+    {
+      "a": "C069",
+      "b": "C070",
+      "axis": "completion",
+      "aCompleted": 1,
+      "bCompleted": 1,
+      "change": 0
+    },
+    {
+      "a": "C070",
+      "b": "C071",
+      "axis": "completion",
+      "aCompleted": 1,
+      "bCompleted": 1,
+      "change": 0
+    },
+    {
+      "a": "C076",
+      "b": "C092",
+      "axis": "topSpeed",
+      "aCompleted": 0,
+      "bCompleted": 0,
+      "change": 0
+    },
+    {
+      "a": "C079",
+      "b": "C083",
+      "axis": "bottomSpeed",
+      "aCompleted": 1,
+      "bCompleted": 1,
+      "change": 0
+    },
+    {
+      "a": "C079",
+      "b": "C171",
+      "axis": "kick",
+      "aCompleted": 1,
+      "bCompleted": 2,
+      "change": 1
+    },
+    {
+      "a": "C082",
+      "b": "C083",
+      "axis": "completion",
+      "aCompleted": 1,
+      "bCompleted": 1,
+      "change": 0
+    },
+    {
+      "a": "C088",
+      "b": "C092",
+      "axis": "bottomSpeed",
+      "aCompleted": 0,
+      "bCompleted": 0,
+      "change": 0
+    },
+    {
+      "a": "C094",
+      "b": "C095",
+      "axis": "completion",
+      "aCompleted": 14,
+      "bCompleted": 13,
+      "change": -1
+    },
+    {
+      "a": "C094",
+      "b": "C098",
+      "axis": "bottomSpeed",
+      "aCompleted": 14,
+      "bCompleted": 10,
+      "change": -4
+    },
+    {
+      "a": "C095",
+      "b": "C099",
+      "axis": "bottomSpeed",
+      "aCompleted": 13,
+      "bCompleted": 8,
+      "change": -5
+    },
+    {
+      "a": "C098",
+      "b": "C099",
+      "axis": "completion",
+      "aCompleted": 10,
+      "bCompleted": 8,
+      "change": -2
+    },
+    {
+      "a": "C098",
+      "b": "C190",
+      "axis": "kick",
+      "aCompleted": 10,
+      "bCompleted": 14,
+      "change": 4
+    },
+    {
+      "a": "C099",
+      "b": "C103",
+      "axis": "bottomSpeed",
+      "aCompleted": 8,
+      "bCompleted": 5,
+      "change": -3
+    },
+    {
+      "a": "C099",
+      "b": "C119",
+      "axis": "topSpeed",
+      "aCompleted": 8,
+      "bCompleted": 5,
+      "change": -3
+    },
+    {
+      "a": "C099",
+      "b": "C191",
+      "axis": "kick",
+      "aCompleted": 8,
+      "bCompleted": 11,
+      "change": 3
+    },
+    {
+      "a": "C101",
+      "b": "C105",
+      "axis": "bottomSpeed",
+      "aCompleted": 11,
+      "bCompleted": 9,
+      "change": -2
+    },
+    {
+      "a": "C101",
+      "b": "C121",
+      "axis": "topSpeed",
+      "aCompleted": 11,
+      "bCompleted": 7,
+      "change": -4
+    },
+    {
+      "a": "C103",
+      "b": "C104",
+      "axis": "completion",
+      "aCompleted": 5,
+      "bCompleted": 4,
+      "change": -1
+    },
+    {
+      "a": "C103",
+      "b": "C107",
+      "axis": "bottomSpeed",
+      "aCompleted": 5,
+      "bCompleted": 4,
+      "change": -1
+    },
+    {
+      "a": "C103",
+      "b": "C123",
+      "axis": "topSpeed",
+      "aCompleted": 5,
+      "bCompleted": 4,
+      "change": -1
+    },
+    {
+      "a": "C104",
+      "b": "C108",
+      "axis": "bottomSpeed",
+      "aCompleted": 4,
+      "bCompleted": 2,
+      "change": -2
+    },
+    {
+      "a": "C105",
+      "b": "C109",
+      "axis": "bottomSpeed",
+      "aCompleted": 9,
+      "bCompleted": 7,
+      "change": -2
+    },
+    {
+      "a": "C107",
+      "b": "C108",
+      "axis": "completion",
+      "aCompleted": 4,
+      "bCompleted": 2,
+      "change": -2
+    },
+    {
+      "a": "C107",
+      "b": "C111",
+      "axis": "bottomSpeed",
+      "aCompleted": 4,
+      "bCompleted": 2,
+      "change": -2
+    },
+    {
+      "a": "C108",
+      "b": "C112",
+      "axis": "bottomSpeed",
+      "aCompleted": 2,
+      "bCompleted": 1,
+      "change": -1
+    },
+    {
+      "a": "C111",
+      "b": "C112",
+      "axis": "completion",
+      "aCompleted": 2,
+      "bCompleted": 1,
+      "change": -1
+    },
+    {
+      "a": "C112",
+      "b": "C132",
+      "axis": "topSpeed",
+      "aCompleted": 1,
+      "bCompleted": 1,
+      "change": 0
+    },
+    {
+      "a": "C119",
+      "b": "C123",
+      "axis": "bottomSpeed",
+      "aCompleted": 5,
+      "bCompleted": 4,
+      "change": -1
+    },
+    {
+      "a": "C119",
+      "b": "C211",
+      "axis": "kick",
+      "aCompleted": 5,
+      "bCompleted": 9,
+      "change": 4
+    },
+    {
+      "a": "C121",
+      "b": "C141",
+      "axis": "topSpeed",
+      "aCompleted": 7,
+      "bCompleted": 5,
+      "change": -2
+    },
+    {
+      "a": "C132",
+      "b": "C152",
+      "axis": "topSpeed",
+      "aCompleted": 1,
+      "bCompleted": 1,
+      "change": 0
+    },
+    {
+      "a": "C133",
+      "b": "C137",
+      "axis": "bottomSpeed",
+      "aCompleted": 5,
+      "bCompleted": 5,
+      "change": 0
+    },
+    {
+      "a": "C137",
+      "b": "C138",
+      "axis": "completion",
+      "aCompleted": 5,
+      "bCompleted": 5,
+      "change": 0
+    },
+    {
+      "a": "C137",
+      "b": "C141",
+      "axis": "bottomSpeed",
+      "aCompleted": 5,
+      "bCompleted": 5,
+      "change": 0
+    },
+    {
+      "a": "C138",
+      "b": "C142",
+      "axis": "bottomSpeed",
+      "aCompleted": 5,
+      "bCompleted": 4,
+      "change": -1
+    },
+    {
+      "a": "C141",
+      "b": "C142",
+      "axis": "completion",
+      "aCompleted": 5,
+      "bCompleted": 4,
+      "change": -1
+    },
+    {
+      "a": "C141",
+      "b": "C233",
+      "axis": "kick",
+      "aCompleted": 5,
+      "bCompleted": 8,
+      "change": 3
+    },
+    {
+      "a": "C142",
+      "b": "C234",
+      "axis": "kick",
+      "aCompleted": 4,
+      "bCompleted": 6,
+      "change": 2
+    },
+    {
+      "a": "C155",
+      "b": "C156",
+      "axis": "completion",
+      "aCompleted": 4,
+      "bCompleted": 1,
+      "change": -3
+    },
+    {
+      "a": "C155",
+      "b": "C159",
+      "axis": "bottomSpeed",
+      "aCompleted": 4,
+      "bCompleted": 2,
+      "change": -2
+    },
+    {
+      "a": "C155",
+      "b": "C171",
+      "axis": "topSpeed",
+      "aCompleted": 4,
+      "bCompleted": 2,
+      "change": -2
+    },
+    {
+      "a": "C156",
+      "b": "C172",
+      "axis": "topSpeed",
+      "aCompleted": 1,
+      "bCompleted": 1,
+      "change": 0
+    },
+    {
+      "a": "C156",
+      "b": "C248",
+      "axis": "kick",
+      "aCompleted": 1,
+      "bCompleted": 1,
+      "change": 0
+    },
+    {
+      "a": "C166",
+      "b": "C167",
+      "axis": "completion",
+      "aCompleted": 1,
+      "bCompleted": 1,
+      "change": 0
+    },
+    {
+      "a": "C167",
+      "b": "C259",
+      "axis": "kick",
+      "aCompleted": 1,
+      "bCompleted": 2,
+      "change": 1
+    },
+    {
+      "a": "C171",
+      "b": "C172",
+      "axis": "completion",
+      "aCompleted": 2,
+      "bCompleted": 1,
+      "change": -1
+    },
+    {
+      "a": "C177",
+      "b": "C181",
+      "axis": "bottomSpeed",
+      "aCompleted": 2,
+      "bCompleted": 1,
+      "change": -1
+    },
+    {
+      "a": "C190",
+      "b": "C191",
+      "axis": "completion",
+      "aCompleted": 14,
+      "bCompleted": 11,
+      "change": -3
+    },
+    {
+      "a": "C190",
+      "b": "C210",
+      "axis": "topSpeed",
+      "aCompleted": 14,
+      "bCompleted": 10,
+      "change": -4
+    },
+    {
+      "a": "C190",
+      "b": "C282",
+      "axis": "kick",
+      "aCompleted": 14,
+      "bCompleted": 18,
+      "change": 4
+    },
+    {
+      "a": "C191",
+      "b": "C211",
+      "axis": "topSpeed",
+      "aCompleted": 11,
+      "bCompleted": 9,
+      "change": -2
+    },
+    {
+      "a": "C191",
+      "b": "C283",
+      "axis": "kick",
+      "aCompleted": 11,
+      "bCompleted": 16,
+      "change": 5
+    },
+    {
+      "a": "C198",
+      "b": "C218",
+      "axis": "topSpeed",
+      "aCompleted": 9,
+      "bCompleted": 8,
+      "change": -1
+    },
+    {
+      "a": "C205",
+      "b": "C209",
+      "axis": "bottomSpeed",
+      "aCompleted": 13,
+      "bCompleted": 10,
+      "change": -3
+    },
+    {
+      "a": "C209",
+      "b": "C210",
+      "axis": "completion",
+      "aCompleted": 10,
+      "bCompleted": 10,
+      "change": 0
+    },
+    {
+      "a": "C210",
+      "b": "C211",
+      "axis": "completion",
+      "aCompleted": 10,
+      "bCompleted": 9,
+      "change": -1
+    },
+    {
+      "a": "C210",
+      "b": "C214",
+      "axis": "bottomSpeed",
+      "aCompleted": 10,
+      "bCompleted": 8,
+      "change": -2
+    },
+    {
+      "a": "C211",
+      "b": "C231",
+      "axis": "topSpeed",
+      "aCompleted": 9,
+      "bCompleted": 5,
+      "change": -4
+    },
+    {
+      "a": "C211",
+      "b": "C303",
+      "axis": "kick",
+      "aCompleted": 9,
+      "bCompleted": 10,
+      "change": 1
+    },
+    {
+      "a": "C214",
+      "b": "C218",
+      "axis": "bottomSpeed",
+      "aCompleted": 8,
+      "bCompleted": 8,
+      "change": 0
+    },
+    {
+      "a": "C214",
+      "b": "C234",
+      "axis": "topSpeed",
+      "aCompleted": 8,
+      "bCompleted": 6,
+      "change": -2
+    },
+    {
+      "a": "C220",
+      "b": "C312",
+      "axis": "kick",
+      "aCompleted": 4,
+      "bCompleted": 4,
+      "change": 0
+    },
+    {
+      "a": "C226",
+      "b": "C227",
+      "axis": "completion",
+      "aCompleted": 9,
+      "bCompleted": 5,
+      "change": -4
+    },
+    {
+      "a": "C227",
+      "b": "C231",
+      "axis": "bottomSpeed",
+      "aCompleted": 5,
+      "bCompleted": 5,
+      "change": 0
+    },
+    {
+      "a": "C227",
+      "b": "C319",
+      "axis": "kick",
+      "aCompleted": 5,
+      "bCompleted": 5,
+      "change": 0
+    },
+    {
+      "a": "C231",
+      "b": "C323",
+      "axis": "kick",
+      "aCompleted": 5,
+      "bCompleted": 5,
+      "change": 0
+    },
+    {
+      "a": "C233",
+      "b": "C234",
+      "axis": "completion",
+      "aCompleted": 8,
+      "bCompleted": 6,
+      "change": -2
+    },
+    {
+      "a": "C233",
+      "b": "C237",
+      "axis": "bottomSpeed",
+      "aCompleted": 8,
+      "bCompleted": 6,
+      "change": -2
+    },
+    {
+      "a": "C233",
+      "b": "C325",
+      "axis": "kick",
+      "aCompleted": 8,
+      "bCompleted": 10,
+      "change": 2
+    },
+    {
+      "a": "C234",
+      "b": "C326",
+      "axis": "kick",
+      "aCompleted": 6,
+      "bCompleted": 9,
+      "change": 3
+    },
+    {
+      "a": "C237",
+      "b": "C329",
+      "axis": "kick",
+      "aCompleted": 6,
+      "bCompleted": 9,
+      "change": 3
+    },
+    {
+      "a": "C248",
+      "b": "C252",
+      "axis": "bottomSpeed",
+      "aCompleted": 1,
+      "bCompleted": 1,
+      "change": 0
+    },
+    {
+      "a": "C254",
+      "b": "C255",
+      "axis": "completion",
+      "aCompleted": 4,
+      "bCompleted": 4,
+      "change": 0
+    },
+    {
+      "a": "C254",
+      "b": "C270",
+      "axis": "topSpeed",
+      "aCompleted": 4,
+      "bCompleted": 3,
+      "change": -1
+    },
+    {
+      "a": "C255",
+      "b": "C259",
+      "axis": "bottomSpeed",
+      "aCompleted": 4,
+      "bCompleted": 2,
+      "change": -2
+    },
+    {
+      "a": "C255",
+      "b": "C347",
+      "axis": "kick",
+      "aCompleted": 4,
+      "bCompleted": 4,
+      "change": 0
+    },
+    {
+      "a": "C259",
+      "b": "C275",
+      "axis": "topSpeed",
+      "aCompleted": 2,
+      "bCompleted": 2,
+      "change": 0
+    },
+    {
+      "a": "C261",
+      "b": "C262",
+      "axis": "completion",
+      "aCompleted": 4,
+      "bCompleted": 4,
+      "change": 0
+    },
+    {
+      "a": "C281",
+      "b": "C282",
+      "axis": "completion",
+      "aCompleted": 21,
+      "bCompleted": 18,
+      "change": -3
+    },
+    {
+      "a": "C282",
+      "b": "C283",
+      "axis": "completion",
+      "aCompleted": 18,
+      "bCompleted": 16,
+      "change": -2
+    },
+    {
+      "a": "C283",
+      "b": "C303",
+      "axis": "topSpeed",
+      "aCompleted": 16,
+      "bCompleted": 10,
+      "change": -6
+    },
+    {
+      "a": "C283",
+      "b": "C375",
+      "axis": "kick",
+      "aCompleted": 16,
+      "bCompleted": 18,
+      "change": 2
+    },
+    {
+      "a": "C291",
+      "b": "C295",
+      "axis": "bottomSpeed",
+      "aCompleted": 11,
+      "bCompleted": 8,
+      "change": -3
+    },
+    {
+      "a": "C295",
+      "b": "C315",
+      "axis": "topSpeed",
+      "aCompleted": 8,
+      "bCompleted": 7,
+      "change": -1
+    },
+    {
+      "a": "C295",
+      "b": "C387",
+      "axis": "kick",
+      "aCompleted": 8,
+      "bCompleted": 11,
+      "change": 3
+    },
+    {
+      "a": "C303",
+      "b": "C307",
+      "axis": "bottomSpeed",
+      "aCompleted": 10,
+      "bCompleted": 9,
+      "change": -1
+    },
+    {
+      "a": "C303",
+      "b": "C323",
+      "axis": "topSpeed",
+      "aCompleted": 10,
+      "bCompleted": 5,
+      "change": -5
+    },
+    {
+      "a": "C307",
+      "b": "C327",
+      "axis": "topSpeed",
+      "aCompleted": 9,
+      "bCompleted": 5,
+      "change": -4
+    },
+    {
+      "a": "C307",
+      "b": "C399",
+      "axis": "kick",
+      "aCompleted": 9,
+      "bCompleted": 10,
+      "change": 1
+    },
+    {
+      "a": "C312",
+      "b": "C316",
+      "axis": "bottomSpeed",
+      "aCompleted": 4,
+      "bCompleted": 4,
+      "change": 0
+    },
+    {
+      "a": "C312",
+      "b": "C404",
+      "axis": "kick",
+      "aCompleted": 4,
+      "bCompleted": 4,
+      "change": 0
+    },
+    {
+      "a": "C315",
+      "b": "C316",
+      "axis": "completion",
+      "aCompleted": 7,
+      "bCompleted": 4,
+      "change": -3
+    },
+    {
+      "a": "C315",
+      "b": "C407",
+      "axis": "kick",
+      "aCompleted": 7,
+      "bCompleted": 8,
+      "change": 1
+    },
+    {
+      "a": "C316",
+      "b": "C408",
+      "axis": "kick",
+      "aCompleted": 4,
+      "bCompleted": 4,
+      "change": 0
+    },
+    {
+      "a": "C319",
+      "b": "C320",
+      "axis": "completion",
+      "aCompleted": 5,
+      "bCompleted": 2,
+      "change": -3
+    },
+    {
+      "a": "C319",
+      "b": "C323",
+      "axis": "bottomSpeed",
+      "aCompleted": 5,
+      "bCompleted": 5,
+      "change": 0
+    },
+    {
+      "a": "C319",
+      "b": "C411",
+      "axis": "kick",
+      "aCompleted": 5,
+      "bCompleted": 5,
+      "change": 0
+    },
+    {
+      "a": "C320",
+      "b": "C412",
+      "axis": "kick",
+      "aCompleted": 2,
+      "bCompleted": 2,
+      "change": 0
+    },
+    {
+      "a": "C322",
+      "b": "C323",
+      "axis": "completion",
+      "aCompleted": 9,
+      "bCompleted": 5,
+      "change": -4
+    },
+    {
+      "a": "C322",
+      "b": "C326",
+      "axis": "bottomSpeed",
+      "aCompleted": 9,
+      "bCompleted": 9,
+      "change": 0
+    },
+    {
+      "a": "C322",
+      "b": "C338",
+      "axis": "topSpeed",
+      "aCompleted": 9,
+      "bCompleted": 6,
+      "change": -3
+    },
+    {
+      "a": "C323",
+      "b": "C327",
+      "axis": "bottomSpeed",
+      "aCompleted": 5,
+      "bCompleted": 5,
+      "change": 0
+    },
+    {
+      "a": "C325",
+      "b": "C326",
+      "axis": "completion",
+      "aCompleted": 10,
+      "bCompleted": 9,
+      "change": -1
+    },
+    {
+      "a": "C325",
+      "b": "C329",
+      "axis": "bottomSpeed",
+      "aCompleted": 10,
+      "bCompleted": 9,
+      "change": -1
+    },
+    {
+      "a": "C325",
+      "b": "C341",
+      "axis": "topSpeed",
+      "aCompleted": 10,
+      "bCompleted": 8,
+      "change": -2
+    },
+    {
+      "a": "C326",
+      "b": "C327",
+      "axis": "completion",
+      "aCompleted": 9,
+      "bCompleted": 5,
+      "change": -4
+    },
+    {
+      "a": "C326",
+      "b": "C330",
+      "axis": "bottomSpeed",
+      "aCompleted": 9,
+      "bCompleted": 8,
+      "change": -1
+    },
+    {
+      "a": "C327",
+      "b": "C331",
+      "axis": "bottomSpeed",
+      "aCompleted": 5,
+      "bCompleted": 5,
+      "change": 0
+    },
+    {
+      "a": "C327",
+      "b": "C419",
+      "axis": "kick",
+      "aCompleted": 5,
+      "bCompleted": 5,
+      "change": 0
+    },
+    {
+      "a": "C329",
+      "b": "C330",
+      "axis": "completion",
+      "aCompleted": 9,
+      "bCompleted": 8,
+      "change": -1
+    },
+    {
+      "a": "C329",
+      "b": "C333",
+      "axis": "bottomSpeed",
+      "aCompleted": 9,
+      "bCompleted": 8,
+      "change": -1
+    },
+    {
+      "a": "C329",
+      "b": "C345",
+      "axis": "topSpeed",
+      "aCompleted": 9,
+      "bCompleted": 7,
+      "change": -2
+    },
+    {
+      "a": "C330",
+      "b": "C331",
+      "axis": "completion",
+      "aCompleted": 8,
+      "bCompleted": 5,
+      "change": -3
+    },
+    {
+      "a": "C331",
+      "b": "C347",
+      "axis": "topSpeed",
+      "aCompleted": 5,
+      "bCompleted": 4,
+      "change": -1
+    },
+    {
+      "a": "C333",
+      "b": "C349",
+      "axis": "topSpeed",
+      "aCompleted": 8,
+      "bCompleted": 6,
+      "change": -2
+    },
+    {
+      "a": "C338",
+      "b": "C430",
+      "axis": "kick",
+      "aCompleted": 6,
+      "bCompleted": 6,
+      "change": 0
+    },
+    {
+      "a": "C341",
+      "b": "C345",
+      "axis": "bottomSpeed",
+      "aCompleted": 8,
+      "bCompleted": 7,
+      "change": -1
+    },
+    {
+      "a": "C345",
+      "b": "C349",
+      "axis": "bottomSpeed",
+      "aCompleted": 7,
+      "bCompleted": 6,
+      "change": -1
+    },
+    {
+      "a": "C347",
+      "b": "C363",
+      "axis": "topSpeed",
+      "aCompleted": 4,
+      "bCompleted": 2,
+      "change": -2
+    },
+    {
+      "a": "C347",
+      "b": "C439",
+      "axis": "kick",
+      "aCompleted": 4,
+      "bCompleted": 4,
+      "change": 0
+    },
+    {
+      "a": "C349",
+      "b": "C441",
+      "axis": "kick",
+      "aCompleted": 6,
+      "bCompleted": 8,
+      "change": 2
+    },
+    {
+      "a": "C352",
+      "b": "C444",
+      "axis": "kick",
+      "aCompleted": 1,
+      "bCompleted": 1,
+      "change": 0
+    },
+    {
+      "a": "C363",
+      "b": "C364",
+      "axis": "completion",
+      "aCompleted": 2,
+      "bCompleted": 1,
+      "change": -1
+    },
+    {
+      "a": "C364",
+      "b": "C456",
+      "axis": "kick",
+      "aCompleted": 1,
+      "bCompleted": 1,
+      "change": 0
+    },
+    {
+      "a": "C377",
+      "b": "C378",
+      "axis": "completion",
+      "aCompleted": 21,
+      "bCompleted": 18,
+      "change": -3
+    },
+    {
+      "a": "C377",
+      "b": "C381",
+      "axis": "bottomSpeed",
+      "aCompleted": 21,
+      "bCompleted": 18,
+      "change": -3
+    },
+    {
+      "a": "C377",
+      "b": "C397",
+      "axis": "topSpeed",
+      "aCompleted": 21,
+      "bCompleted": 14,
+      "change": -7
+    },
+    {
+      "a": "C381",
+      "b": "C385",
+      "axis": "bottomSpeed",
+      "aCompleted": 18,
+      "bCompleted": 16,
+      "change": -2
+    },
+    {
+      "a": "C381",
+      "b": "C401",
+      "axis": "topSpeed",
+      "aCompleted": 18,
+      "bCompleted": 14,
+      "change": -4
+    },
+    {
+      "a": "C384",
+      "b": "C404",
+      "axis": "topSpeed",
+      "aCompleted": 11,
+      "bCompleted": 4,
+      "change": -7
+    },
+    {
+      "a": "C385",
+      "b": "C405",
+      "axis": "topSpeed",
+      "aCompleted": 16,
+      "bCompleted": 11,
+      "change": -5
+    },
+    {
+      "a": "C387",
+      "b": "C407",
+      "axis": "topSpeed",
+      "aCompleted": 11,
+      "bCompleted": 8,
+      "change": -3
+    },
+    {
+      "a": "C391",
+      "b": "C411",
+      "axis": "topSpeed",
+      "aCompleted": 10,
+      "bCompleted": 5,
+      "change": -5
+    },
+    {
+      "a": "C393",
+      "b": "C397",
+      "axis": "bottomSpeed",
+      "aCompleted": 14,
+      "bCompleted": 14,
+      "change": 0
+    },
+    {
+      "a": "C393",
+      "b": "C413",
+      "axis": "topSpeed",
+      "aCompleted": 14,
+      "bCompleted": 11,
+      "change": -3
+    },
+    {
+      "a": "C397",
+      "b": "C401",
+      "axis": "bottomSpeed",
+      "aCompleted": 14,
+      "bCompleted": 14,
+      "change": 0
+    },
+    {
+      "a": "C399",
+      "b": "C419",
+      "axis": "topSpeed",
+      "aCompleted": 10,
+      "bCompleted": 5,
+      "change": -5
+    },
+    {
+      "a": "C401",
+      "b": "C405",
+      "axis": "bottomSpeed",
+      "aCompleted": 14,
+      "bCompleted": 11,
+      "change": -3
+    },
+    {
+      "a": "C404",
+      "b": "C408",
+      "axis": "bottomSpeed",
+      "aCompleted": 4,
+      "bCompleted": 4,
+      "change": 0
+    },
+    {
+      "a": "C404",
+      "b": "C424",
+      "axis": "topSpeed",
+      "aCompleted": 4,
+      "bCompleted": 2,
+      "change": -2
+    },
+    {
+      "a": "C407",
+      "b": "C408",
+      "axis": "completion",
+      "aCompleted": 8,
+      "bCompleted": 4,
+      "change": -4
+    },
+    {
+      "a": "C408",
+      "b": "C428",
+      "axis": "topSpeed",
+      "aCompleted": 4,
+      "bCompleted": 2,
+      "change": -2
+    },
+    {
+      "a": "C410",
+      "b": "C411",
+      "axis": "completion",
+      "aCompleted": 9,
+      "bCompleted": 5,
+      "change": -4
+    },
+    {
+      "a": "C411",
+      "b": "C412",
+      "axis": "completion",
+      "aCompleted": 5,
+      "bCompleted": 2,
+      "change": -3
+    },
+    {
+      "a": "C424",
+      "b": "C428",
+      "axis": "bottomSpeed",
+      "aCompleted": 2,
+      "bCompleted": 2,
+      "change": 0
+    },
+    {
+      "a": "C428",
+      "b": "C444",
+      "axis": "topSpeed",
+      "aCompleted": 2,
+      "bCompleted": 1,
+      "change": -1
+    },
+    {
+      "a": "C439",
+      "b": "C443",
+      "axis": "bottomSpeed",
+      "aCompleted": 4,
+      "bCompleted": 4,
+      "change": 0
+    },
+    {
+      "a": "C443",
+      "b": "C444",
+      "axis": "completion",
+      "aCompleted": 4,
+      "bCompleted": 1,
+      "change": -3
+    }
+  ],
+  "scenarioBoundaries": [
+    {
+      "wordCount": 5,
+      "intervalSeconds": 2,
+      "runs": 150,
+      "completed": 146,
+      "completionRate": 0.9733333333333334,
+      "completedRetrievalsPerWord": {
+        "min": 2,
+        "median": 3,
+        "max": 16
+      },
+      "configurationsPassingNecessaryTopMargin": 150
+    },
+    {
+      "wordCount": 5,
+      "intervalSeconds": 5,
+      "runs": 150,
+      "completed": 98,
+      "completionRate": 0.6533333333333333,
+      "completedRetrievalsPerWord": {
+        "min": 2,
+        "median": 3,
+        "max": 18.8
+      },
+      "configurationsPassingNecessaryTopMargin": 125
+    },
+    {
+      "wordCount": 5,
+      "intervalSeconds": 10,
+      "runs": 150,
+      "completed": 42,
+      "completionRate": 0.28,
+      "completedRetrievalsPerWord": {
+        "min": 2,
+        "median": 3,
+        "max": 6
+      },
+      "configurationsPassingNecessaryTopMargin": 89
+    },
+    {
+      "wordCount": 5,
+      "intervalSeconds": 15,
+      "runs": 150,
+      "completed": 20,
+      "completionRate": 0.13333333333333333,
+      "completedRetrievalsPerWord": {
+        "min": 2,
+        "median": 2.8,
+        "max": 7.2
+      },
+      "configurationsPassingNecessaryTopMargin": 66
+    },
+    {
+      "wordCount": 10,
+      "intervalSeconds": 2,
+      "runs": 150,
+      "completed": 115,
+      "completionRate": 0.7666666666666667,
+      "completedRetrievalsPerWord": {
+        "min": 2,
+        "median": 3,
+        "max": 21.6
+      },
+      "configurationsPassingNecessaryTopMargin": 138
+    },
+    {
+      "wordCount": 10,
+      "intervalSeconds": 5,
+      "runs": 150,
+      "completed": 51,
+      "completionRate": 0.34,
+      "completedRetrievalsPerWord": {
+        "min": 2,
+        "median": 3.1,
+        "max": 6.6
+      },
+      "configurationsPassingNecessaryTopMargin": 83
+    },
+    {
+      "wordCount": 10,
+      "intervalSeconds": 10,
+      "runs": 150,
+      "completed": 17,
+      "completionRate": 0.11333333333333333,
+      "completedRetrievalsPerWord": {
+        "min": 2,
+        "median": 2.6,
+        "max": 11.6
+      },
+      "configurationsPassingNecessaryTopMargin": 45
+    },
+    {
+      "wordCount": 10,
+      "intervalSeconds": 15,
+      "runs": 150,
+      "completed": 6,
+      "completionRate": 0.04,
+      "completedRetrievalsPerWord": {
+        "min": 2,
+        "median": 2.7,
+        "max": 3.3
+      },
+      "configurationsPassingNecessaryTopMargin": 27
+    },
+    {
+      "wordCount": 15,
+      "intervalSeconds": 2,
+      "runs": 150,
+      "completed": 98,
+      "completionRate": 0.6533333333333333,
+      "completedRetrievalsPerWord": {
+        "min": 2,
+        "median": 3,
+        "max": 19.933333333333334
+      },
+      "configurationsPassingNecessaryTopMargin": 125
+    },
+    {
+      "wordCount": 15,
+      "intervalSeconds": 5,
+      "runs": 150,
+      "completed": 30,
+      "completionRate": 0.2,
+      "completedRetrievalsPerWord": {
+        "min": 2,
+        "median": 3,
+        "max": 8
+      },
+      "configurationsPassingNecessaryTopMargin": 56
+    },
+    {
+      "wordCount": 15,
+      "intervalSeconds": 10,
+      "runs": 150,
+      "completed": 8,
+      "completionRate": 0.05333333333333334,
+      "completedRetrievalsPerWord": {
+        "min": 2,
+        "median": 2.166666666666667,
+        "max": 4.333333333333333
+      },
+      "configurationsPassingNecessaryTopMargin": 27
+    },
+    {
+      "wordCount": 15,
+      "intervalSeconds": 15,
+      "runs": 150,
+      "completed": 2,
+      "completionRate": 0.013333333333333334,
+      "completedRetrievalsPerWord": {
+        "min": 2.4,
+        "median": 2.9,
+        "max": 3.4
+      },
+      "configurationsPassingNecessaryTopMargin": 15
+    },
+    {
+      "wordCount": 20,
+      "intervalSeconds": 2,
+      "runs": 150,
+      "completed": 74,
+      "completionRate": 0.49333333333333335,
+      "completedRetrievalsPerWord": {
+        "min": 2,
+        "median": 3,
+        "max": 22.6
+      },
+      "configurationsPassingNecessaryTopMargin": 102
+    },
+    {
+      "wordCount": 20,
+      "intervalSeconds": 5,
+      "runs": 150,
+      "completed": 23,
+      "completionRate": 0.15333333333333332,
+      "completedRetrievalsPerWord": {
+        "min": 2,
+        "median": 3,
+        "max": 9.2
+      },
+      "configurationsPassingNecessaryTopMargin": 45
+    },
+    {
+      "wordCount": 20,
+      "intervalSeconds": 10,
+      "runs": 150,
+      "completed": 7,
+      "completionRate": 0.04666666666666667,
+      "completedRetrievalsPerWord": {
+        "min": 2,
+        "median": 2.65,
+        "max": 3.9
+      },
+      "configurationsPassingNecessaryTopMargin": 27
+    },
+    {
+      "wordCount": 20,
+      "intervalSeconds": 15,
+      "runs": 150,
+      "completed": 0,
+      "completionRate": 0,
+      "completedRetrievalsPerWord": null,
+      "configurationsPassingNecessaryTopMargin": 15
+    },
+    {
+      "wordCount": 25,
+      "intervalSeconds": 2,
+      "runs": 150,
+      "completed": 57,
+      "completionRate": 0.38,
+      "completedRetrievalsPerWord": {
+        "min": 2,
+        "median": 3,
+        "max": 7.2
+      },
+      "configurationsPassingNecessaryTopMargin": 83
+    },
+    {
+      "wordCount": 25,
+      "intervalSeconds": 5,
+      "runs": 150,
+      "completed": 13,
+      "completionRate": 0.08666666666666667,
+      "completedRetrievalsPerWord": {
+        "min": 2,
+        "median": 2.52,
+        "max": 7.84
+      },
+      "configurationsPassingNecessaryTopMargin": 34
+    },
+    {
+      "wordCount": 25,
+      "intervalSeconds": 10,
+      "runs": 150,
+      "completed": 2,
+      "completionRate": 0.013333333333333334,
+      "completedRetrievalsPerWord": {
+        "min": 2.48,
+        "median": 2.9,
+        "max": 3.32
+      },
+      "configurationsPassingNecessaryTopMargin": 15
+    },
+    {
+      "wordCount": 25,
+      "intervalSeconds": 15,
+      "runs": 150,
+      "completed": 0,
+      "completionRate": 0,
+      "completedRetrievalsPerWord": null,
+      "configurationsPassingNecessaryTopMargin": 8
+    },
+    {
+      "wordCount": 30,
+      "intervalSeconds": 2,
+      "runs": 150,
+      "completed": 51,
+      "completionRate": 0.34,
+      "completedRetrievalsPerWord": {
+        "min": 2,
+        "median": 3.3666666666666667,
+        "max": 9.933333333333334
+      },
+      "configurationsPassingNecessaryTopMargin": 78
+    },
+    {
+      "wordCount": 30,
+      "intervalSeconds": 5,
+      "runs": 150,
+      "completed": 8,
+      "completionRate": 0.05333333333333334,
+      "completedRetrievalsPerWord": {
+        "min": 2,
+        "median": 2.033333333333333,
+        "max": 3.6
+      },
+      "configurationsPassingNecessaryTopMargin": 27
+    },
+    {
+      "wordCount": 30,
+      "intervalSeconds": 10,
+      "runs": 150,
+      "completed": 2,
+      "completionRate": 0.013333333333333334,
+      "completedRetrievalsPerWord": {
+        "min": 3.1666666666666665,
+        "median": 3.7333333333333334,
+        "max": 4.3
+      },
+      "configurationsPassingNecessaryTopMargin": 15
+    },
+    {
+      "wordCount": 30,
+      "intervalSeconds": 15,
+      "runs": 150,
+      "completed": 0,
+      "completionRate": 0,
+      "completedRetrievalsPerWord": null,
+      "configurationsPassingNecessaryTopMargin": 0
+    }
+  ],
+  "sampleCounts": {
+    "kick": [
+      {
+        "value": 15,
+        "count": 26
+      },
+      {
+        "value": 25,
+        "count": 36
+      },
+      {
+        "value": 35,
+        "count": 26
+      },
+      {
+        "value": 45,
+        "count": 32
+      },
+      {
+        "value": 55,
+        "count": 30
+      }
+    ],
+    "topSpeed": [
+      {
+        "value": 0.1,
+        "count": 33
+      },
+      {
+        "value": 0.3,
+        "count": 32
+      },
+      {
+        "value": 0.5,
+        "count": 39
+      },
+      {
+        "value": 0.7,
+        "count": 27
+      },
+      {
+        "value": 1,
+        "count": 19
+      }
+    ],
+    "bottomSpeed": [
+      {
+        "value": 0.5,
+        "count": 18
+      },
+      {
+        "value": 1,
+        "count": 34
+      },
+      {
+        "value": 1.5,
+        "count": 31
+      },
+      {
+        "value": 2,
+        "count": 33
+      },
+      {
+        "value": 3,
+        "count": 34
+      }
+    ],
+    "completion": [
+      {
+        "value": 60,
+        "count": 35
+      },
+      {
+        "value": 70,
+        "count": 34
+      },
+      {
+        "value": 80,
+        "count": 46
+      },
+      {
+        "value": 90,
+        "count": 35
+      }
+    ]
+  }
+}

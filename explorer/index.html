@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#0A0D19"><title>Mündu — Physics Explorer</title>
+<link rel="stylesheet" href="style.css"><script defer src="model.js"></script><script defer src="app.js"></script>
+</head>
+<body>
+<main>
+<header><div><a class="brand" href="../index.html">MÜNDU<span>_</span></a><span class="edition">PHYSICS EXPLORER / 03</span></div><div class="live"><i></i> LEGACY PHYSICS RESULTS</div></header>
+<div class="intro"><div><p class="eyebrow">THE SHAPE OF DIFFICULTY</p><h1>Explore the possible.</h1><p>Legacy fixed-kick model. Every point is a previously tested configuration.</p></div><div class="dataset"><b id="sample-count">—</b><span>CONFIGURATIONS<br><span id="run-count">—</span> RECORDED RUNS</span></div></div>
+<p id="load-status" role="status">Loading saved sweep results…</p>
+<section class="controls" aria-label="Performance filters">
+<label class="threshold-control"><span>COMPLETION THRESHOLD <output id="threshold-value">80%</output></span><input id="threshold" type="range" min="0" max="3" step="1" value="2" aria-label="Completion threshold"><span class="ticks"><span>60%</span><span>70%</span><span>80%</span><span>90%</span></span></label>
+<label>VOCABULARY SIZE<select id="words"><option value="all">All sizes</option><option>5</option><option>10</option><option>15</option><option>20</option><option>25</option><option>30</option></select></label>
+<label>RETRIEVAL INTERVAL<select id="interval"><option value="all">All intervals</option><option value="2">Every 2 seconds</option><option value="5">Every 5 seconds</option><option value="10">Every 10 seconds</option><option value="15">Every 15 seconds</option></select></label>
+<label>COLOR METRIC<select id="metric"><option value="rate">Completion rate</option><option value="effort">Retrievals per word</option><option value="time">Completion time</option></select></label>
+</section>
+<section class="workspace">
+<div class="instrument"><div class="panel-top"><span>01 / PARAMETER FIELD</span><span id="slice-count">— POINTS</span></div><div class="plot-wrap"><canvas id="cloud" tabindex="0" aria-label="Interactive 3D physics scatterplot. Drag to rotate, scroll to zoom; use arrow keys to rotate and plus or minus to zoom."></canvas><div id="tooltip" hidden></div><div class="plot-axis-key">X / KICK (%) &nbsp; Y / TOP SPEED (pp/s) &nbsp; Z / BOTTOM SPEED (pp/s)</div></div>
+<div class="plot-footer"><span>DRAG TO ROTATE · SCROLL / PINCH TO ZOOM · CLICK TO INSPECT</span><button id="reset-view">RESET VIEW ↺</button></div>
+<div class="color-legend"><div><span id="legend-title">Completion rate</span><div class="gradient"></div><div class="legend-values"><span id="legend-low">0%</span><span id="legend-high">100%</span></div></div><p><span class="symbol">○</span> Magenta ring: some runs unfinished<br><span class="symbol gray">×</span> All unfinished; no effort/time estimate</p></div>
+<p class="aggregation" id="aggregation"></p>
+</div>
+<aside class="inspector"><p class="eyebrow">02 / CONFIGURATION</p><label class="picker-label">SELECT A TESTED POINT<select id="configuration" aria-label="Select configuration"></select></label><div id="selected-summary"></div><div class="neighbor-heading"><span>LOCAL NEIGHBORHOOD</span><span id="neighbor-count"></span></div><p class="neighbor-note">One adjacent grid step in one parameter, including the completion threshold. Rates use the current size/interval filters.</p><div id="neighbors"></div><p class="neighbor-note">Dashed entries are valid but untested. Invalid bottom &lt; top combinations are excluded. No interpolation.</p></aside>
+</section>
+<section class="details"><div class="panel-top"><span>03 / RETRIEVAL EFFORT</span><span id="chart-config"></span></div><p class="chart-note">Successful retrievals per word vs. vocabulary size. Each line is a retrieval interval; breaks mark unfinished runs.</p><canvas id="effort-chart" aria-label="Retrieval effort by vocabulary size and retrieval interval"></canvas><div id="effort-legend" class="effort-legend"></div><p id="effort-unfinished" class="chart-note"></p></section>
+<section class="details"><div class="panel-top"><span>04 / ALL 24 SCENARIOS</span><span id="table-summary"></span></div><p class="chart-note">The complete configuration record, independent of filters. Highlighted rows match the current size/interval selection. Times exclude pauses.</p><div class="table-wrap"><table><thead><tr><th>Words</th><th>Interval</th><th>Status</th><th>Successes</th><th>Answers / word</th><th>Completion time</th><th>Elapsed time</th><th>Unlocked</th><th>Final progress</th></tr></thead><tbody id="results"></tbody></table></div></section>
+<footer><span>SAMPLED SPACE · NO INFERRED OUTCOMES</span><span id="metadata">1/60 s timestep · one-hour limit</span></footer>
+</main>
+</body>
+</html>
