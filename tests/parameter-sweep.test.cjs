@@ -15,8 +15,8 @@ test('obsolete parameter sweep cannot silently run old ranges against the new ph
 test('simulator overrides use the real new model while preserving engine defaults',()=>{
  const defaults=JSON.stringify(Physics.DEFAULTS);
  const result=Simulator.runSimulation({wordCount:2,intervalSeconds:.1,maxTimeSeconds:10,
-  physicsConfig:{motion:{kickStrengthPercent:55,topFallingSpeed:.5,bottomToTopMultiplier:2}}});
- assert.deepEqual(result.finalState.config.motion,{kickStrengthPercent:55,topFallingSpeed:.5,bottomToTopMultiplier:2});
+  physicsConfig:{motion:{kickHeightPercent:55,topFallingSpeed:.5,bottomToTopMultiplier:2}}});
+ assert.deepEqual(result.finalState.config.motion,{kickHeightPercent:55,topFallingSpeed:.5,bottomToTopMultiplier:2,gravityReductionPercent:5});
  assert.deepEqual(result.finalState.config.unlock,Physics.DEFAULTS.unlock);assert.equal(result.finalState.model,Physics.MODEL);
  assert.equal(result.status,'Completed');assert.equal(JSON.stringify(Physics.DEFAULTS),defaults);
 });

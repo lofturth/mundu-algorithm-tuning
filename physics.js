@@ -19,12 +19,12 @@
   // Falling speeds are positive magnitudes in percentage points per second.
   const DEFAULTS = Object.freeze({
     bounds: Object.freeze({ top:100, bottom:0, responseRate:15 }),
-    motion: Object.freeze({ topFallingSpeed:1, kickStrengthPercent:50, bottomToTopMultiplier:10 }),
+    motion: Object.freeze({ topFallingSpeed:1, kickHeightPercent:25, bottomToTopMultiplier:5, gravityReductionPercent:5 }),
     unlock: Object.freeze({ initialCount:1, threshold:50 }),
     finish: Object.freeze({ threshold:90 }),
     instantPosition:false
   });
-  const MODEL='field-falling-time-percent-v5';
+  const MODEL='reference-kick-height-v7';
   const RETRIEVAL=Object.freeze({ hintSeconds:2, hintedMultiplier:0.5 });
   const clone = value => JSON.parse(JSON.stringify(value));
   const clamp = (n,low,high) => Math.max(low,Math.min(high,n));
@@ -42,7 +42,7 @@
     config.instantPosition=patch.instantPosition ?? previous.instantPosition;
     const {bounds:b,motion:m,unlock:u,finish:f}=config;
     if (!(b.responseRate>0 && b.bottom===0 && b.top===100 && b.bottom<u.threshold &&
-      u.threshold<f.threshold && f.threshold<b.top && m.topFallingSpeed>0 && m.kickStrengthPercent>0 && Number.isFinite(m.topFallingSpeed*m.bottomToTopMultiplier) && m.bottomToTopMultiplier>=1 &&
+      u.threshold<f.threshold && f.threshold<b.top && m.topFallingSpeed>0 && m.kickHeightPercent>=1 && m.kickHeightPercent<=100 && Number.isFinite(m.topFallingSpeed*m.bottomToTopMultiplier) && m.bottomToTopMultiplier>=1 && m.gravityReductionPercent>=0 && m.gravityReductionPercent<=10 &&
       Number.isInteger(u.initialCount) && u.initialCount>=1 &&
       typeof config.instantPosition==='boolean')) throw new RangeError('Invalid physics configuration');
     return config;
@@ -61,17 +61,22 @@
     const R=config.motion.bottomToTopMultiplier;
     return R-(R-1)*h;
   }
+  function gravityMultiplier(config,unlockedWordCount=1) {
+    if(!Number.isInteger(unlockedWordCount) || unlockedWordCount<1)throw new RangeError('Unlocked count must be a positive integer');
+    return Math.pow(1-config.motion.gravityReductionPercent/100,unlockedWordCount-1);
+  }
   // x is percentage height; a is points/second and b is 1/second.
   // v(x) = a - b*x. The tau coordinate is measured in seconds.
-  function fallingCoefficients(config) {
+  function fallingCoefficients(config,unlockedWordCount=1) {
     const {topFallingSpeed,bottomToTopMultiplier:R}=config.motion;
-    return {a:topFallingSpeed*R,b:topFallingSpeed*(R-1)/100};
+    const effectiveTopSpeed=topFallingSpeed*gravityMultiplier(config,unlockedWordCount);
+    return {a:effectiveTopSpeed*R,b:effectiveTopSpeed*(R-1)/100};
   }
-  function fallingSpeed(position,config) {
-    return config.motion.topFallingSpeed*scalingFactor(position,config);
+  function fallingSpeed(position,config,unlockedWordCount=1) {
+    return config.motion.topFallingSpeed*gravityMultiplier(config,unlockedWordCount)*scalingFactor(position,config);
   }
-  function timeCoordinate(position,config) {
-    const x=clamp(position,0,100),{a,b}=fallingCoefficients(config);
+  function timeCoordinate(position,config,unlockedWordCount=1) {
+    const x=clamp(position,0,100),{a,b}=fallingCoefficients(config,unlockedWordCount);
     if(b===0)return x/a;
     if(x===100)return Math.log1p(config.motion.bottomToTopMultiplier-1)/b;
     const q=b*x/a;
@@ -79,36 +84,36 @@
     // also handles underflow at negligible heights/slopes.
     return q===0?x/a:(x/a)*(-Math.log1p(-q)/q);
   }
-  function positionAtTime(seconds,config) {
-    const {a,b}=fallingCoefficients(config),ceiling=timeCoordinate(100,config);
+  function positionAtTime(seconds,config,unlockedWordCount=1) {
+    const {a,b}=fallingCoefficients(config,unlockedWordCount),ceiling=timeCoordinate(100,config,unlockedWordCount);
     if(seconds<=0)return 0;
     if(seconds>=ceiling)return 100;
     const z=b*seconds;
     const x=z===0?a*seconds:a*seconds*(-Math.expm1(-z)/z);
     return clamp(x,0,100);
   }
-  function reverseFallingTime(position,seconds,config) {
+  function reverseFallingTime(position,seconds,config,unlockedWordCount=1) {
     const x=clamp(position,0,100);
-    return seconds===0?x:positionAtTime(timeCoordinate(x,config)+seconds,config);
+    return seconds===0?x:positionAtTime(timeCoordinate(x,config,unlockedWordCount)+seconds,config,unlockedWordCount);
   }
-  function fieldFallTime(config) { return timeCoordinate(100,config); }
-  function baselineKickTime(config) { return fieldFallTime(config)*config.motion.kickStrengthPercent/100; }
-  function fullKick(position,config) {
-    return reverseFallingTime(position,baselineKickTime(config),config)-clamp(position,0,100);
+  function fieldFallTime(config,unlockedWordCount=1) { return timeCoordinate(100,config,unlockedWordCount); }
+  function baselineKickTime(config,unlockedWordCount=1) { return timeCoordinate(config.motion.kickHeightPercent,config,unlockedWordCount); }
+  function fullKick(position,config,unlockedWordCount=1) {
+    return reverseFallingTime(position,baselineKickTime(config,unlockedWordCount),config,unlockedWordCount)-clamp(position,0,100);
   }
-  function derivedMotion(config) {
-    return {baseFallingSpeed:fallingCoefficients(config).a,baseKick:fullKick(0,config),fieldFallTime:fieldFallTime(config),baselineKickTime:baselineKickTime(config)};
+  function derivedMotion(config,unlockedWordCount=1) {
+    return {baseFallingSpeed:fallingCoefficients(config,unlockedWordCount).a,baseKick:fullKick(0,config,unlockedWordCount),fieldFallTime:fieldFallTime(config,unlockedWordCount),baselineKickTime:baselineKickTime(config,unlockedWordCount)};
   }
-  function fallingDepth(position,dt,config) {
+  function fallingDepth(position,dt,config,unlockedWordCount=1) {
     const x=clamp(position,0,100);
-    return dt===0?x:positionAtTime(timeCoordinate(x,config)-dt,config);
+    return dt===0?x:positionAtTime(timeCoordinate(x,config,unlockedWordCount)-dt,config,unlockedWordCount);
   }
   function retrievalMultiplier(latency,hintVisible=false) {
     return hintVisible?RETRIEVAL.hintedMultiplier:2-clamp(latency,0,RETRIEVAL.hintSeconds)/2;
   }
-  function retrievalLift(position,config,hintVisible=false,latency=0) {
-    const kickTime=baselineKickTime(config)*retrievalMultiplier(latency,hintVisible);
-    return reverseFallingTime(position,kickTime,config)-clamp(position,0,100);
+  function retrievalLift(position,config,hintVisible=false,latency=0,unlockedWordCount=1) {
+    const kickTime=baselineKickTime(config,unlockedWordCount)*retrievalMultiplier(latency,hintVisible);
+    return reverseFallingTime(position,kickTime,config,unlockedWordCount)-clamp(position,0,100);
   }
   function createSession(options={}) {
     let config=configuration(options.config);
@@ -117,7 +122,7 @@
       (options.wordCount!==undefined && (!Number.isInteger(options.wordCount) || options.wordCount<1))) {
       throw new RangeError('A session needs a positive vocabulary size');
     }
-    let state={version:7,model:MODEL,config,words:vocabulary.map((entry,i)=>({
+    let state={version:9,model:MODEL,config,words:vocabulary.map((entry,i)=>({
       english:Array.isArray(entry)?String(entry[0]):String(entry.english ?? entry),
       spanish:Array.isArray(entry)?String(entry[1] ?? ''):String(entry.spanish ?? ''),
       streak:0,unlocked:i<config.unlock.initialCount,
@@ -165,13 +170,15 @@
       const value=clamp(100*state.words.reduce((sum,word)=>sum+wordProgress(word,config.finish.threshold),0)/state.words.length,0,100);
       return value===100 && !state.words.every(word=>isAboveFinish(word,config.finish.threshold))?100-1e-10:value;
     }
+    function unlockedCount() { return state.words.filter(word=>word.unlocked).length; }
     const api={
       advance(dt) {
         if (!Number.isFinite(dt) || dt<0) throw new RangeError('Duration must be finite and nonnegative');
         if (state.paused || state.complete) return {unlockedIndex:null,completedNow:false};
+        const activeCount=unlockedCount();
         for (const word of state.words) {
           if (!word.unlocked) continue;
-          word.depth=fallingDepth(word.depth,dt,config);
+          word.depth=fallingDepth(word.depth,dt,config,activeCount);
           // A numerical response position, not a browser animation: threshold
           // checks historically wait for this position as well as logical depth.
           word.shown=config.instantPosition?word.depth:word.shown+(word.depth-word.shown)*(1-Math.exp(-config.bounds.responseRate*dt));
@@ -184,12 +191,13 @@
         if (state.paused || state.complete) return null;
         const index=select(),word=state.words[index],previousDepth=word.depth;
         const latency=Math.max(0,state.time-state.selectedAt),hintVisible=state.hintVisible;
-        const fullLift=fullKick(previousDepth,config);
+        const activeCount=unlockedCount();
+        const fullLift=fullKick(previousDepth,config,activeCount);
         word.streak++;
-        word.depth=clamp(previousDepth+retrievalLift(previousDepth,config,hintVisible,latency),config.bounds.bottom,config.bounds.top);
+        word.depth=clamp(previousDepth+retrievalLift(previousDepth,config,hintVisible,latency,activeCount),config.bounds.bottom,config.bounds.top);
         if(config.instantPosition)word.shown=word.depth;
         const result={kind:'retrieval',index,word:word.english,translation:word.spanish,latency,hintVisible,
-          multiplier:retrievalMultiplier(latency,hintVisible),kickTime:baselineKickTime(config)*retrievalMultiplier(latency,hintVisible),fullLift,lift:word.depth-previousDepth};
+          multiplier:retrievalMultiplier(latency,hintVisible),kickTime:baselineKickTime(config,activeCount)*retrievalMultiplier(latency,hintVisible),fullLift,lift:word.depth-previousDepth};
         state.lastRetrieval=result;state.retrievalCount++;
         state.skippedIndex=-1;state.selectedIndex=-1;
         Object.assign(result,reconcile());return clone(result);
@@ -204,7 +212,11 @@
         state.skippedIndex=index;state.selectedIndex=-1;
         Object.assign(result,reconcile());return clone(result);
       },
-      getState() { return clone({...state,config}); },
+      getState() {
+        const unlockedWordCount=unlockedCount();
+        return clone({...state,config,unlockedWordCount,gravityMultiplier:gravityMultiplier(config,unlockedWordCount),
+          fieldFallTime:fieldFallTime(config,unlockedWordCount),baselineKickTime:baselineKickTime(config,unlockedWordCount)});
+      },
       getProgress,
       getLowestIndex:lowestIndex,
       isComplete() { return state.complete; },
@@ -219,7 +231,7 @@
       },
       restore(snapshot) {
         const saved=clone(snapshot);
-        if (saved.version!==7 || saved.model!==MODEL || !Array.isArray(saved.words) || !saved.words.length ||
+        if (saved.version!==9 || saved.model!==MODEL || !Array.isArray(saved.words) || !saved.words.length ||
           !Number.isFinite(saved.time) || saved.time<0 || !Number.isFinite(saved.selectedAt) || saved.selectedAt<0 || saved.selectedAt>saved.time ||
           !Number.isInteger(saved.selectedIndex) || saved.selectedIndex<0 || saved.selectedIndex>=saved.words.length ||
           typeof saved.hintVisible!=='boolean' || !Number.isInteger(saved.skippedIndex) || saved.skippedIndex< -1 || saved.skippedIndex>=saved.words.length ||
@@ -236,5 +248,5 @@
   function restoreSession(snapshot) {
     return createSession({wordCount:1}).restore(snapshot);
   }
-  return Object.freeze({MODEL,DEFAULTS,RETRIEVAL,createSession,restoreSession,derivedMotion,fieldFallTime,baselineKickTime,timeCoordinate,positionAtTime,reverseFallingTime,scalingFactor,fullKick,fallingSpeed,fallingDepth,retrievalMultiplier,retrievalLift,wordProgress,isAboveFinish});
+  return Object.freeze({MODEL,DEFAULTS,RETRIEVAL,createSession,restoreSession,gravityMultiplier,derivedMotion,fieldFallTime,baselineKickTime,timeCoordinate,positionAtTime,reverseFallingTime,scalingFactor,fullKick,fallingSpeed,fallingDepth,retrievalMultiplier,retrievalLift,wordProgress,isAboveFinish});
 });

@@ -118,3 +118,12 @@ test('rejects invalid sizes, schedules and limits',()=>{
  assert.throws(()=>Simulator.runSimulation({wordCount:5,intervalSeconds:2,stepSeconds:0}),RangeError);
  assert.throws(()=>Simulator.runSimulation({wordCount:5,intervalSeconds:2,maxTimeSeconds:0}),RangeError);
 });
+
+test('simulator overrides and restored final state retain gravity reduction and active counts',()=>{
+ const options={wordCount:8,intervalSeconds:2,maxTimeSeconds:12,physicsConfig:{motion:{gravityReductionPercent:5,kickHeightPercent:60},unlock:{initialCount:3}}};
+ const a=Simulator.runSimulation(options),b=Simulator.runSimulation(options);assert.deepEqual(a,b);
+ const state=a.finalState;assert.equal(state.config.motion.gravityReductionPercent,5);assert.equal(state.config.motion.kickHeightPercent,60);
+ assert.equal(state.unlockedWordCount,state.words.filter(w=>w.unlocked).length);
+ near(state.gravityMultiplier,.95**(state.unlockedWordCount-1));
+ assert.deepEqual(Physics.restoreSession(state).getState(),state);
+});

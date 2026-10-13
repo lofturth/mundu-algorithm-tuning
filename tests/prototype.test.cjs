@@ -33,11 +33,11 @@ for(const fixture of fixtures)test(`prototype/engine parity: initial=${fixture.o
  });
 });
 test('local scripts load in order; controls, tuning and default settings still work',()=>{
- assert.ok(files.html.indexOf('src="physics.js"')<files.html.indexOf('src="app.js"'));
+ assert.ok(files.html.indexOf('src="physics.js?')<files.html.indexOf('src="app.js?'));
  const h=host();assert.equal(h.run('words.filter(w=>w.unlocked).length'),1);
  h.settings('topFallingSpeed',1,'MOTION');assert.equal(h.run('session.getState().config.motion.topFallingSpeed'),1);
- h.settings('kickStrengthPercent',30,'MOTION');assert.equal(h.run('session.getState().config.motion.kickStrengthPercent'),30);
- assert.equal(h.run("tuningInputs.find(v=>v.key==='bottomToTopMultiplier').input.value"),'10');
+ h.settings('kickHeightPercent',30,'MOTION');assert.equal(h.run('session.getState().config.motion.kickHeightPercent'),30);
+ assert.equal(h.run("tuningInputs.find(v=>v.key==='bottomToTopMultiplier').input.value"),'5');
  h.settings('bottomToTopMultiplier',2,'MOTION');assert.equal(h.run('session.getState().config.motion.bottomToTopMultiplier'),2);
  h.settings('jumpEase',12,'TUNE');assert.equal(h.run('session.getState().config.bounds.responseRate'),12);
  h.settings('initialCount',3,'UNLOCK');assert.equal(h.run('words.filter(w=>w.unlocked).length'),1);
@@ -45,8 +45,8 @@ test('local scripts load in order; controls, tuning and default settings still w
  h.click('tuning-defaults');h.click('reset');
  assert.equal(h.run('words.filter(w=>w.unlocked).length'),1);
  assert.equal(h.run('session.getState().config.motion.topFallingSpeed'),1);
- assert.equal(h.run('session.getState().config.motion.kickStrengthPercent'),50);
- assert.equal(h.run("tuningInputs.some(v=>v.key==='baseKick'||v.key==='baseFallingSpeed')"),false);
+ assert.equal(h.run('session.getState().config.motion.kickHeightPercent'),25);
+ assert.equal(h.run("tuningInputs.some(v=>v.key==='baseKick'||v.key==='baseFallingSpeed'||v.key==='kickStrengthPercent')"),false);
 });
 test('progress keeps full history, raw endpoint, percentages and visual-only smoothing',()=>{
  const h=host();h.advance(.1);h.retrieve();h.advance(.15);
@@ -96,7 +96,7 @@ test('normalized positions render at the unchanged SVG coordinates and Tune uses
 });
 
 test('hint display, Escape skip, successful counters, and removal of mistakes',()=>{
- const h=host();h.settings('kickStrengthPercent',1,'MOTION'); // isolate prompt timing from unlocking
+ const h=host();h.settings('kickHeightPercent',1,'MOTION'); // isolate prompt timing from unlocking
  h.advance(1.9);assert.equal(h.elements.get('target-hint').hidden,true);
  h.advance(.1);assert.equal(h.elements.get('target-hint').hidden,false);
  assert.ok(h.elements.get('target-hint').textContent.includes('río'));
@@ -115,11 +115,11 @@ test('hint display, Escape skip, successful counters, and removal of mistakes',(
 
 
 test('prototype applies engine retrieval-time multipliers and reports the unaided bonus',()=>{
- const h=host();h.settings('kickStrengthPercent',1,'MOTION');
+ const h=host();h.settings('kickHeightPercent',1,'MOTION');
  for(const [seconds,multiplier] of [[0,2],[.5,1.75],[1,1.5],[1.5,1.25],[2,.5],[10,.5]]){
   h.click('reset');h.advance(seconds);h.retrieve();
   compare(h.run('lastMeasurement.multiplier'),multiplier);
-  compare(h.run('lastMeasurement.kickTime'),h.run('MunduPhysics.fieldFallTime(session.getState().config)')*multiplier/100);
+  compare(h.run('lastMeasurement.kickTime'),h.run('MunduPhysics.baselineKickTime(session.getState().config)')*multiplier);
   compare(h.run('MunduPhysics.timeCoordinate(words[0].depth,session.getState().config)'),h.run('lastMeasurement.kickTime'));
   assert.ok(h.elements.get('feedback').textContent.includes(seconds<2?multiplier.toFixed(2)+'× kick':'half kick'));
  }
@@ -136,19 +136,20 @@ test('word percentages use field height, matching Tune and the fade threshold',(
  h.click('reset');assert.equal(h.run('nodes[0].streak.textContent'),'0%');
 });
 
-test('Tune exposes % of field, supports above 100%, and keeps strength on speed changes',()=>{
+test('Tune exposes reference kick height and keeps it unchanged on speed changes',()=>{
  const h=host();assert.equal(h.run("tuningInputs.some(v=>v.key==='kickCompensationSeconds')"),false);
- assert.equal(h.run("tuningInputs.find(v=>v.key==='kickStrengthPercent').input.value"),'50');
- h.settings('kickStrengthPercent',150,'MOTION');
+ assert.equal(h.run("tuningInputs.find(v=>v.key==='kickHeightPercent').input.value"),'25');
+ h.settings('kickHeightPercent',90,'MOTION');
+ h.settings('kickHeightPercent',100.1,'MOTION');assert.equal(h.run('session.getState().config.motion.kickHeightPercent'),90);
  const initial=h.run('MunduPhysics.baselineKickTime(session.getState().config)');
  h.settings('topFallingSpeed',2,'MOTION');
- assert.equal(h.run('session.getState().config.motion.kickStrengthPercent'),150);
+ assert.equal(h.run('session.getState().config.motion.kickHeightPercent'),90);
  compare(h.run('MunduPhysics.baselineKickTime(session.getState().config)'),initial/2);
  h.settings('bottomToTopMultiplier',3,'MOTION');
- assert.equal(h.run('session.getState().config.motion.kickStrengthPercent'),150);
- compare(h.run('MunduPhysics.baselineKickTime(session.getState().config)'),h.run('MunduPhysics.fieldFallTime(session.getState().config)')*1.5);
+ assert.equal(h.run('session.getState().config.motion.kickHeightPercent'),90);
+ compare(h.run('MunduPhysics.baselineKickTime(session.getState().config)'),h.run('MunduPhysics.timeCoordinate(90,session.getState().config)'));
  h.click('tuning-defaults');h.click('reset');
- assert.equal(h.run('session.getState().config.motion.kickStrengthPercent'),50);
+ assert.equal(h.run('session.getState().config.motion.kickHeightPercent'),25);
 });
 
 
@@ -177,7 +178,7 @@ test('kick graph freezes on Pause and resumes the hint timer without counting pa
 });
 
 test('ended prompt graph hides on retrieval/skip, resets for the next prompt, and hides on completion',()=>{
- const h=host();h.settings('kickStrengthPercent',1,'MOTION');h.advance(1);h.retrieve();
+ const h=host();h.settings('kickHeightPercent',1,'MOTION');h.advance(1);h.retrieve();
  assert.equal(h.elements.get('kick-graph').hidden,true);assert.equal(h.elements.get('kick-graph-value').textContent,'0.0s / 2.00×');
  compare(Number(h.elements.get('kick-indicator').attrs.cx),32);
  h.advance(.01);assert.equal(h.elements.get('kick-graph').hidden,false);
@@ -187,4 +188,17 @@ test('ended prompt graph hides on retrieval/skip, resets for the next prompt, an
  const completed=host();for(let i=0;i<300&&!completed.run('sessionComplete');i++){completed.advance(.1);completed.retrieve();}
  assert.equal(completed.run('sessionComplete'),true);assert.equal(completed.elements.get('kick-graph').hidden,true);
  assert.equal(completed.elements.get('kick-graph').attrs['aria-hidden'],'true');
+});
+
+test('Tune effective gravity updates on unlocking, parameter edits and Reset',()=>{
+ const h=host();assert.equal(h.elements.get('effective-gravity').textContent,'EFFECTIVE GRAVITY 100.00%');
+ assert.equal(h.run("tuningInputs.find(v=>v.key==='gravityReductionPercent').input.value"),'5');
+ h.run('{const state=session.getState();state.words[0].depth=51;state.words[0].shown=51;session.restore(state);}');
+ h.advance(.01);assert.equal(h.run('session.getState().unlockedWordCount'),2);
+ assert.equal(h.elements.get('effective-gravity').textContent,'EFFECTIVE GRAVITY 95.00%');
+ h.settings('gravityReductionPercent',5,'MOTION');assert.equal(h.elements.get('effective-gravity').textContent,'EFFECTIVE GRAVITY 95.00%');
+ h.settings('gravityReductionPercent',0,'MOTION');assert.equal(h.elements.get('effective-gravity').textContent,'EFFECTIVE GRAVITY 100.00%');
+ h.settings('gravityReductionPercent',10.1,'MOTION');assert.equal(h.run('session.getState().config.motion.gravityReductionPercent'),0);
+ h.click('tuning-defaults');assert.equal(h.elements.get('effective-gravity').textContent,'EFFECTIVE GRAVITY 95.00%');
+ h.click('reset');assert.equal(h.elements.get('effective-gravity').textContent,'EFFECTIVE GRAVITY 100.00%');
 });

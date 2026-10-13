@@ -125,3 +125,5 @@ button:disabled { opacity:0.4; cursor:default; }
 .kick-filled { fill:var(--pink); }
 #kick-indicator { fill:var(--cyan); stroke:var(--bg); stroke-width:1; }
 @media(max-width:700px) { .kick-graph { width:200px; } }
+
+.tuning-row #effective-gravity { color:var(--cyan); font-variant-numeric:tabular-nums; }

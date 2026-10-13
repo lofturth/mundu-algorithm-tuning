@@ -19,6 +19,7 @@ let sessionComplete=false, completionPresented=false;
 let session, selectedIndex=0, pendingUnlock=false;
 let wordFlashes=[];
 let kickGraphEnded=false;
+let gravityReadout;
 const COLOR = { grid:'#202738', muted:'#657087', pink:'#ED4CA8', cyan:'#43E6ED' };
 const VOCABULARY = [ ['river','río'], ['light','luz'], ['apple','manzana'],
   ['night','noche'], ['house','casa'], ['water','agua'], ['bread','pan'],
@@ -319,6 +320,7 @@ function render(dt) {
   el('target-streak').textContent='STREAK '+String(target.streak).padStart(2,'0');
   const promptState=session.getState();
   renderKickGraph(promptState,dt);
+  if(gravityReadout)gravityReadout.textContent='EFFECTIVE GRAVITY '+(100*promptState.gravityMultiplier).toFixed(2)+'%';
   const hinted=promptState.hintVisible;
   el('target-hint').hidden=!hinted;
   el('target-hint').textContent=hinted?'HINT → '+target.spanish+' / HALF KICK':'';
@@ -385,7 +387,8 @@ const SETTINGS = [
   {name:'SHARED LINEAR PHYSICS',values:MOTION,fields:[
     ['topFallingSpeed','Top falling speed','At top; percentage points / second',0.01,15,0.01],
     ['bottomToTopMultiplier','Bottom-to-top multiplier','Bottom ÷ top for falling and kicks; 3 = three times',1,1000,0.1],
-    ['kickStrengthPercent','Kick strength (% of field)','% of field falling time reversed by a 1× kick',0.1,200,0.1]]},
+    ['kickHeightPercent','Kick height (%)','A 1× kick from the bottom reaches this height',1,100,0.1],
+    ['gravityReductionPercent','Gravity reduction / new word (%)','Each additional unlocked word reduces current gravity',0,10,0.1]]},
   {name:'HISTORICAL SMOOTHING',values:SMOOTH,fields:[
     ['rawSeconds','Raw bleeding edge','Seconds of completely unsmoothed activity',0.1,3,0.1],
     ['settleSeconds','Time to become smooth','Seconds after leaving the raw edge',0.1,5,0.1],
@@ -421,6 +424,11 @@ function buildTuning() {
       const name=document.createElement('span'); name.textContent=title;
       const note=document.createElement('small'); note.textContent=description;
       caption.appendChild(name); caption.appendChild(note);
+      if(key==='gravityReductionPercent'){
+        gravityReadout=document.createElement('small');gravityReadout.setAttribute('id','effective-gravity');
+        gravityReadout.textContent='EFFECTIVE GRAVITY '+(100*session.getState().gravityMultiplier).toFixed(2)+'%';
+        caption.appendChild(gravityReadout);
+      }
       const input=document.createElement('input');
       input.type='number'; input.min=min; input.max=max; input.step=step;
       input.value=Number(group.values[key].toFixed(6)); input.title=key;

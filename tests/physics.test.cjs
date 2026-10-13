@@ -5,7 +5,7 @@ function setPositions(s,positions,shown=positions){const state=s.getState();posi
 // Keep explicit-second regression cases while configuring the new percentage API.
 function kickSecondsConfig(seconds,motion={}) {
  const session=P.createSession({config:{motion}});
- session.configure({motion:{kickStrengthPercent:100*seconds/P.fieldFallTime(session.getState().config)}});
+ session.configure({motion:{kickHeightPercent:P.positionAtTime(seconds,session.getState().config)}});
  return session.getState().config;
 }
 test('shared falling-speed scaling remains linear, including R=1',()=>{
@@ -124,7 +124,7 @@ test('rejects incorrect-answer flags, old configuration, invalid multipliers/tim
  for(const bottomToTopMultiplier of [0,-1,.9,NaN])assert.throws(()=>s.configure({motion:{bottomToTopMultiplier}}),RangeError);
  for(const dt of [-1,NaN,Infinity])assert.throws(()=>s.advance(dt),RangeError);
  assert.throws(()=>s.configure({gravity:{maxSpeed:9}}),RangeError);assert.throws(()=>P.createSession({wordCount:0}),RangeError);
- s.configure({motion:{kickStrengthPercent:25,topFallingSpeed:.5,bottomToTopMultiplier:2}});assert.deepEqual(s.getState().config.motion,{kickStrengthPercent:25,topFallingSpeed:.5,bottomToTopMultiplier:2});
+ s.configure({motion:{kickHeightPercent:25,topFallingSpeed:.5,bottomToTopMultiplier:2}});assert.deepEqual(s.getState().config.motion,{kickHeightPercent:25,topFallingSpeed:.5,bottomToTopMultiplier:2,gravityReductionPercent:5});
 });
 
 test('hint deadline tolerates only floating-point clock noise, not a late grace period',()=>{
@@ -135,11 +135,11 @@ test('hint deadline tolerates only floating-point clock noise, not a late grace 
 
 test('compensation controls derive speeds and kicks without independent overrides',()=>{
  const s=P.createSession();const initial=s.getState().config;
- near(initial.motion.topFallingSpeed,1);near(initial.motion.kickStrengthPercent,50);
- near(P.derivedMotion(initial).baseFallingSpeed,10);near(P.derivedMotion(initial).baseKick,P.fullKick(0,initial));
- for(const strength of [10,60,120])for(const bottomToTopMultiplier of [10,3,1]){
-  s.configure({motion:{topFallingSpeed:.8,kickStrengthPercent:strength,bottomToTopMultiplier}});
-  const c=s.getState().config,seconds=P.fieldFallTime(c)*strength/100;near(P.fallingSpeed(100,c),.8);near(P.fallingSpeed(0,c),.8*bottomToTopMultiplier);
+ near(initial.motion.topFallingSpeed,1);near(initial.motion.kickHeightPercent,25);
+ near(P.derivedMotion(initial).baseFallingSpeed,5);near(P.derivedMotion(initial).baseKick,P.fullKick(0,initial));
+ for(const strength of [10,60,100])for(const bottomToTopMultiplier of [10,3,1]){
+  s.configure({motion:{topFallingSpeed:.8,kickHeightPercent:strength,bottomToTopMultiplier}});
+  const c=s.getState().config,seconds=P.timeCoordinate(strength,c);near(P.fallingSpeed(100,c),.8);near(P.fallingSpeed(0,c),.8*bottomToTopMultiplier);
   for(const h of [0,25,50,75,100]){
    const ceiling=P.timeCoordinate(100,c),before=P.timeCoordinate(h,c);
    near(P.timeCoordinate(h+P.fullKick(h,c),c),Math.min(ceiling,before+seconds));
@@ -147,8 +147,8 @@ test('compensation controls derive speeds and kicks without independent override
   }
  }
  for(const field of ['baseKick','baseFallingSpeed','ratio','kickCompensationSeconds'])assert.throws(()=>s.configure({motion:{[field]:5}}),RangeError);
- for(const field of ['topFallingSpeed','kickStrengthPercent'])for(const value of [0,-1,Infinity,NaN])assert.throws(()=>s.configure({motion:{[field]:value}}),RangeError);
- const capped=P.createSession({wordCount:2});const answer=capped.retrieve();assert.equal(answer.lift,100);near(answer.kickTime,P.fieldFallTime(capped.getState().config));capped.advance(.1);assert.ok(capped.getState().words[0].depth<100);
+ for(const field of ['topFallingSpeed','kickHeightPercent'])for(const value of [0,-1,Infinity,NaN])assert.throws(()=>s.configure({motion:{[field]:value}}),RangeError);
+ const capped=P.createSession({wordCount:2,config:{motion:{kickHeightPercent:100}}});const answer=capped.retrieve();assert.equal(answer.lift,100);near(answer.kickTime,2*P.baselineKickTime(capped.getState().config));capped.advance(.1);assert.ok(capped.getState().words[0].depth<100);
 });
 
 test('changing to R preserves the previous effective linear position physics',()=>{
@@ -224,26 +224,26 @@ test('time-coordinate falling preserves the previous analytic linear-speed traje
  }
 });
 
-test('50% baseline, 2x and hinted kicks reverse the specified fractions of field falling time',()=>{
+test('25% reference height, 2x and hinted kicks reverse the specified baseline time',()=>{
  const s=P.createSession({wordCount:2}),c=s.getState().config,field=P.fieldFallTime(c);
- near(c.motion.kickStrengthPercent,50);near(P.baselineKickTime(c),field/2);
- const baseline=P.fullKick(0,c);assert.ok(baseline>50 && baseline<100);
- near(P.timeCoordinate(baseline,c),field/2);
- near(P.fallingDepth(baseline,field/2,c),0);
- const immediate=s.retrieve();assert.equal(s.getState().words[0].depth,100);
- near(immediate.multiplier,2);near(immediate.kickTime,field);
+ near(c.motion.kickHeightPercent,25);near(P.baselineKickTime(c),P.timeCoordinate(25,c));
+ const baseline=P.fullKick(0,c);assert.ok(baseline>0 && baseline<100);
+ near(baseline,25);near(P.timeCoordinate(baseline,c),P.baselineKickTime(c));
+ near(P.fallingDepth(baseline,P.baselineKickTime(c),c),0);
+ const immediate=s.retrieve();near(s.getState().words[0].depth,45);
+ near(immediate.multiplier,2);near(immediate.kickTime,2*P.baselineKickTime(c));
  const assisted=P.createSession({wordCount:2});assisted.advance(2);
  const result=assisted.retrieve(),height=assisted.getState().words[0].depth;
- near(result.multiplier,.5);near(result.kickTime,field/4);
- near(P.timeCoordinate(height,c),field/4);assert.ok(height<baseline);
+ near(result.multiplier,.5);near(result.kickTime,P.baselineKickTime(c)/2);
+ near(P.timeCoordinate(height,c),P.baselineKickTime(c)/2);assert.ok(height<baseline);
 });
 
-test('speed changes rescale kick seconds but preserve percentage-based height behavior',()=>{
+test('speed changes rescale kick seconds but preserve reference-height behavior',()=>{
  for(const R of [1,1+1e-12,3,10,100]){
   const s=P.createSession({config:{motion:{topFallingSpeed:.5,bottomToTopMultiplier:R}}});
   const before=s.getState().config,field=P.fieldFallTime(before),baseline=P.baselineKickTime(before);
   s.configure({motion:{topFallingSpeed:2}});const after=s.getState().config;
-  assert.equal(after.motion.kickStrengthPercent,50);
+  assert.equal(after.motion.kickHeightPercent,25);
   near(P.fieldFallTime(after),field/4);near(P.baselineKickTime(after),baseline/4);
   for(const height of [0,20,70,95])for(const latency of [0,.5,1,1.5]){
    near(P.retrievalLift(height,before,false,latency),P.retrievalLift(height,after,false,latency));
@@ -252,15 +252,114 @@ test('speed changes rescale kick seconds but preserve percentage-based height be
  }
 });
 
-test('R changes recalculate field time and baseline while preserving percentage definition',()=>{
+test('R changes recalculate field time and baseline while preserving reference height',()=>{
  const s=P.createSession();
- for(const R of [1,1+1e-12,2,10,100])for(const strength of [25,50,100,150]){
-  s.configure({motion:{bottomToTopMultiplier:R,kickStrengthPercent:strength}});
+ for(const R of [1,1+1e-12,2,10,100])for(const strength of [25,50,76,100]){
+  s.configure({motion:{bottomToTopMultiplier:R,kickHeightPercent:strength}});
   const c=s.getState().config,field=P.fieldFallTime(c);
-  near(P.baselineKickTime(c),field*strength/100);
-  near(P.timeCoordinate(P.fullKick(0,c),c)/field,Math.min(1,strength/100));
-  assert.equal(c.motion.kickStrengthPercent,strength);
+  near(P.baselineKickTime(c),P.timeCoordinate(strength,c));
+  near(P.fullKick(0,c),strength);
+  assert.equal(c.motion.kickHeightPercent,strength);
   assert.equal(P.derivedMotion(c).fieldFallTime,field);
   assert.equal(P.derivedMotion(c).baselineKickTime,P.baselineKickTime(c));
  }
+});
+
+test('unlocked-word gravity follows the multiplicative rule and excludes locked words',()=>{
+ assert.equal(P.DEFAULTS.motion.gravityReductionPercent,5);
+ const c=P.createSession({config:{motion:{gravityReductionPercent:2}}}).getState().config;
+ for(const n of [1,5,10,20,30]){
+  near(P.gravityMultiplier(c,n),Math.pow(.98,n-1));
+  const s=P.createSession({wordCount:35,config:{unlock:{initialCount:n},motion:{gravityReductionPercent:2}}}),state=s.getState();
+  assert.equal(state.unlockedWordCount,n);near(state.gravityMultiplier,Math.pow(.98,n-1));
+  for(const height of [0,50,100])near(P.fallingSpeed(height,c,n),P.fallingSpeed(height,c)*state.gravityMultiplier);
+  near(state.fieldFallTime,P.fieldFallTime(c)/state.gravityMultiplier);
+ }
+ assert.equal(P.gravityMultiplier(c,1),1);
+ assert.ok(Math.abs(P.gravityMultiplier(c,30)*100-55.66)<.005);
+ for(let n=2;n<=30;n++)near(P.gravityMultiplier(c,n)/P.gravityMultiplier(c,n-1),.98);
+});
+
+test('zero reduction preserves original falling and kicks, including many active words',()=>{
+ const s=P.createSession({wordCount:30,config:{motion:{gravityReductionPercent:0},unlock:{initialCount:30}}});
+ const c=s.getState().config,original=P.createSession().getState().config;
+ assert.equal(s.getState().gravityMultiplier,1);
+ for(const height of [0,20,60,100]){
+  near(P.fallingSpeed(height,c,30),P.fallingSpeed(height,original,1));
+  near(P.fallingDepth(height,3,c,30),P.fallingDepth(height,3,original,1));
+  near(P.retrievalLift(height,c,false,1,30),P.retrievalLift(height,original,false,1,1));
+ }
+});
+
+test('unlock immediately updates effective gravity and the next falling update uses it',()=>{
+ const s=P.createSession({wordCount:5,config:{instantPosition:true}});setPositions(s,[51,0,0,0,0]);
+ const transition=s.advance(0),after=s.getState();assert.equal(transition.unlockedIndex,1);
+ assert.equal(after.unlockedWordCount,2);near(after.gravityMultiplier,.95);
+ near(after.fieldFallTime,P.fieldFallTime(after.config,1)/.95);
+ s.advance(1);near(s.getState().words[0].depth,P.fallingDepth(51,1,after.config,2));
+ assert.ok(s.getState().words[0].depth>P.fallingDepth(51,1,after.config,1));
+ assert.equal(s.getState().words[2].depth,0);
+});
+
+test('kick destinations are unchanged across unlocked counts, including hints and ceilings',()=>{
+ for(const height of [0,20,60,95])for(const [latency,hint] of [[0,false],[.5,false],[1,false],[1.5,false],[2,true],[20,true]]){
+  let reference;
+  for(const n of [1,5,30]){
+   const s=P.createSession({wordCount:31,config:{unlock:{initialCount:n}}});
+   const saved=s.getState();saved.time=latency;saved.selectedAt=0;saved.hintVisible=hint;
+   saved.words.forEach((word,i)=>{if(word.unlocked){word.depth=i===0?height:100;word.shown=i===0?height:0;}});
+   s.restore(saved);const result=s.retrieve(),end=s.getState().words[0].depth;
+   assert.equal(result.index,0);
+   near(result.kickTime,P.baselineKickTime(saved.config,n)*P.retrievalMultiplier(latency,hint));
+   if(reference===undefined)reference=end;else near(end,reference);
+   near(end,height+P.retrievalLift(height,saved.config,hint,latency,n));
+  }
+ }
+});
+
+test('gravity settings and unlocked count restore deterministically; overrides take effect live',()=>{
+ const s=P.createSession({wordCount:8,config:{unlock:{initialCount:3},motion:{gravityReductionPercent:5}}});
+ s.advance(1);s.skip();s.advance(2);const restored=P.restoreSession(s.getState());
+ for(let i=0;i<20;i++)for(const run of [s,restored]){run.advance(.2);run.retrieve();}
+ assert.deepEqual(s.getState(),restored.getState());
+ const saved=s.getState();near(saved.gravityMultiplier,.95**(saved.unlockedWordCount-1));
+ s.configure({motion:{gravityReductionPercent:0}});assert.equal(s.getState().gravityMultiplier,1);
+ for(const invalid of [-.1,10.1,Infinity,NaN])assert.throws(()=>s.configure({motion:{gravityReductionPercent:invalid}}),RangeError);
+ s.configure({motion:{gravityReductionPercent:10}});near(s.getState().gravityMultiplier,.9**(s.getState().unlockedWordCount-1));
+ s.setPaused(true);const frozen=s.getState();s.advance(100);s.retrieve();s.skip();assert.deepEqual(s.getState(),frozen);
+ s.setPaused(false);assert.equal(s.getState().unlockedWordCount,frozen.unlockedWordCount);
+});
+
+test('normal bottom kick reaches configured reference height across speed, R and gravity settings',()=>{
+ for(const height of [1,25,76,100])for(const topFallingSpeed of [.1,1,3])for(const R of [1,1+1e-12,3,10])for(const reduction of [0,2,10]){
+  const c=P.createSession({config:{motion:{kickHeightPercent:height,topFallingSpeed,bottomToTopMultiplier:R,gravityReductionPercent:reduction}}}).getState().config;
+  for(const n of [1,5,30]){
+   near(P.baselineKickTime(c,n),P.timeCoordinate(height,c,n));
+   near(P.fullKick(0,c,n),height);
+   near(P.reverseFallingTime(0,P.baselineKickTime(c,n),c,n),height);
+  }
+ }
+});
+
+test('reference-height retrieval bonuses scale time and hinted retrieval halves it',()=>{
+ for(const R of [1,3,10])for(const n of [1,5,30])for(const [latency,hint,multiplier] of [[0,false,2],[1,false,1.5],[2,true,.5],[20,true,.5]]){
+  const s=P.createSession({wordCount:31,config:{motion:{kickHeightPercent:25,bottomToTopMultiplier:R},unlock:{initialCount:n}}});
+  const saved=s.getState();saved.time=latency;saved.selectedAt=0;saved.hintVisible=hint;
+  saved.words.forEach((w,i)=>{if(w.unlocked){w.depth=i===0?0:100;w.shown=0;}});s.restore(saved);
+  const baseline=P.timeCoordinate(25,saved.config,n),result=s.retrieve(),height=s.getState().words[0].depth;
+  near(result.kickTime,baseline*multiplier);near(P.timeCoordinate(height,saved.config,n),result.kickTime);
+  s.advance(result.kickTime);near(s.getState().words[0].depth,0);
+ }
+});
+
+test('reference height bounds and checkpoint schema safely reject old kick settings',()=>{
+ const s=P.createSession();assert.equal(s.getState().config.motion.kickHeightPercent,25);
+ for(const height of [0,.9,100.1,Infinity,NaN])assert.throws(()=>s.configure({motion:{kickHeightPercent:height}}),RangeError);
+ assert.throws(()=>s.configure({motion:{kickStrengthPercent:50}}),RangeError);
+ const old=s.getState();old.version=8;old.model='multiplicative-gravity-v6';assert.throws(()=>P.restoreSession(old),RangeError);
+ s.configure({motion:{kickHeightPercent:60,gravityReductionPercent:5}});s.advance(1);s.skip();
+ const restored=P.restoreSession(s.getState());assert.deepEqual(restored.getState(),s.getState());
+ for(const run of [s,restored]){run.advance(.5);run.retrieve();run.setPaused(true);run.advance(20);run.setPaused(false);run.advance(.1);}
+ assert.deepEqual(restored.getState(),s.getState());
+ s.configure({motion:{kickHeightPercent:100}});assert.equal(P.reverseFallingTime(95,2*P.baselineKickTime(s.getState().config),s.getState().config),100);
 });
