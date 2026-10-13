@@ -1,4 +1,4 @@
-# Mündu visual experiment
+# Mündu algorithm-tuning test bench
 
 Open `index.html` directly in a desktop browser. No installation, build, or server is required for the playable prototype. A letter simulates a successful retrieval; Escape skips. Backspace has no answer mechanic. Pause freezes physics and prompt timers; Reset starts a fresh session.
 
@@ -67,7 +67,7 @@ Overall progress still averages word progress toward the completion threshold, u
 
 ## Engine API
 
-`physics.js` is DOM-free and exposes `MunduPhysics` in the browser and CommonJS exports in Node. The playable prototype and simulator both import this engine.
+`physics.js` is DOM-free and exposes `MunduPhysics` in the browser and CommonJS exports in Node. The interactive test bench imports this engine.
 
 ```js
 const Physics = require('./physics.js');
@@ -77,20 +77,19 @@ const session = Physics.createSession({
   config: { motion: { topFallingSpeed: 1, bottomToTopMultiplier: 5, kickHeightPercent: 25, gravityReductionPercent: 5 } }
 });
 session.advance(0.1);       // Explicit simulation seconds.
-session.retrieve();         // Successful; speed-scaled/half kick from actual hint state.
+session.retrieve();         // Successful; exponential reward from prompt elapsed time.
 session.skip();             // No kick, no successful retrieval.
 session.setPaused(true);
 session.setPaused(false);
 session.getProgress();      // 0–100% overall progress.
 session.getLowestIndex();
 session.isComplete();
-const checkpoint = session.getState();
-const restored = Physics.restoreSession(checkpoint);
+const state = session.getState(); // Detached snapshot for inspection.
 ```
 
 `advance()` returns `{unlockedIndex, completedNow}`. Retrieval and skip return action details (kind, index, word, latency, hint state, multiplier, requested `kickTime` in seconds, actual lift in percentage points, and transition fields), or null when frozen. `retrieve()` takes no correctness or timing flags. A new session resets gameplay.
 
-`getState()` returns a detached, JSON-serializable version-10 checkpoint, tagged `exponential-retrieval-v8`, with all word positions/streaks/locks, configuration, elapsed time, computed unlocked-word count, effective gravity multiplier, effective field falling time and baseline kick time, selected prompt and timer, actual hint state, temporary skip exclusion, counts, and completion/pause state. Earlier-model checkpoints, the old `kickStrengthPercent`, `kickCompensationSeconds` and `ratio` settings, and independent `baseKick`/`baseFallingSpeed` configuration fields are rejected rather than silently reinterpreted. Old saved engine checkpoints must be restarted; they are not converted by guessing an equivalent reference height. Tune settings remain session-local and reload loads the new defaults. `Physics.derivedMotion(config)` reports the derived bottom speed, clamped 1× bottom lift (`baseKick`), `fieldFallTime`, and `baselineKickTime` in seconds. `fieldFallTime(config, unlockedWordCount)` and `baselineKickTime(config, unlockedWordCount)` are also exposed directly. `gravityMultiplier(config, unlockedWordCount)` exposes the reduction rule. Physics helpers accept an optional unlocked count (default one); pass the current count as the last argument for effective session calculations. The session always derives it from actual unlocked words, including after restore, rather than trusting saved derived statistics. `fullKick(position, config)` returns a clamped 1× lift; `retrievalLift` applies the response multiplier to time. `kickMultiplier(t)` is shared by physics and graph; `retrievalMultiplier` remains an alias for API compatibility. The legacy hint argument accepted by helper calls has no effect on reward strength. `timeCoordinate`, `positionAtTime`, and `reverseFallingTime` expose the analytic transformation. The returned `fullLift` is a 1× physical lift and must not be multiplied by the response multiplier; `kickTime` is the requested time before clamping. `restore(snapshot)` also restores an existing session. `configure(patch)` changes known configuration fields; initial active count takes effect on a new session. Reproducibility requires the same checkpoint, configuration, time-step sequence, and actions. Displayed settling still has the existing timestep sensitivity.
+`getState()` returns a detached, JSON-serializable inspection snapshot with all word positions/streaks/locks, configuration, elapsed time, computed unlocked-word count, effective gravity multiplier, effective field falling time and baseline kick time, selected prompt and timer, actual hint state, temporary skip exclusion, counts, and completion/pause state. Tune settings remain session-local and reload loads the new defaults. `Physics.derivedMotion(config)` reports the derived bottom speed, clamped 1× bottom lift (`baseKick`), `fieldFallTime`, and `baselineKickTime` in seconds. `fieldFallTime(config, unlockedWordCount)` and `baselineKickTime(config, unlockedWordCount)` are also exposed directly. `gravityMultiplier(config, unlockedWordCount)` exposes the reduction rule. Physics helpers accept an optional unlocked count (default one); pass the current count as the last argument for effective session calculations. The session always derives it from actual unlocked words, rather than a separate counter. `fullKick(position, config)` returns a clamped 1× lift; `retrievalLift` applies the response multiplier to time. `kickMultiplier(t)` is shared by physics and graph; `retrievalMultiplier` remains an alias for API compatibility. The legacy hint argument accepted by helper calls has no effect on reward strength. `timeCoordinate`, `positionAtTime`, and `reverseFallingTime` expose the analytic transformation. The returned `fullLift` is a 1× physical lift and must not be multiplied by the response multiplier; `kickTime` is the requested time before clamping. `configure(patch)` changes known configuration fields; initial active count takes effect on a new session. Deterministic replay uses a fresh session with the same configuration, time-step sequence, and actions. Displayed settling still has the existing timestep sensitivity.
 
 Positions convert to screen coordinates only in rendering: `screenY = 502 - position * 442 / 100`. This preserves the original field and threshold locations.
 
@@ -103,14 +102,8 @@ node --test tests/*.test.cjs
 python3 -m http.server 8765 --bind 127.0.0.1
 ```
 
-Open `http://127.0.0.1:8765/` for the game, or open `index.html` directly. Tests use Node built-ins and cover linear falling speeds, exact kick/fall round trips, constant-speed and near-constant-speed stability, exponential reward values and hint continuity, reference-height kicks, unlocked-word gravity reduction, invariant kick destinations, hints, skipping, clamping, pause, unlocking, completion, deterministic checkpoints, prototype integration, simulator parity, and saved explorer data. Only short focused simulations run in tests; the full grid and parameter sweep are not rerun.
+Open `http://127.0.0.1:8765/` for the test bench, or open `index.html` directly. Tests use Node built-ins and cover linear falling speeds, exact kick/fall round trips, constant-speed and near-constant-speed stability, exponential reward values and hint continuity, reference-height kicks, unlocked-word gravity reduction, invariant kick destinations, hints, skipping, clamping, pause, unlocking, completion, deterministic replay, prototype integration, live tuning, and progress and reward graphs.
 
-Historical fixtures `tests/fixtures/physics-before-normalization.cjs` and `physics-normalized-legacy.cjs` test the prior coordinate conversion against one another. They are never loaded by the current game or simulator, and do not assert that the new model behaves like the old one.
+Tests use internal-state access through source instrumentation only to construct precise position/timer fixtures; the production engine exposes no state-writing API. `tests/legacy-fixtures.json` remains as action schedules for current prototype/engine parity tests; its historical snapshots are not used as expected current behavior.
 
-## Simulator and legacy results
-
-`simulator.cjs` uses the current engine, including the two-second hint. Its `runSimulation({wordCount, intervalSeconds, stepSeconds, maxTimeSeconds, physicsConfig})` API supports deterministic runs and explicit overrides. The default experiment grid remains sizes 5–30 in steps of 5, intervals 2/5/10/15 seconds, a 1/60-second timestep, and a one-hour limit. The first answer follows one full interval. Completion freezes immediately; unfinished runs have no completion time. `node simulator.cjs` explicitly runs that grid using the new model; it has not been run as part of this change.
-
-**Existing `simulation-results.txt` and `sweep-results/` are legacy physics measurements.** They used the former fixed kick and independently configured falling speeds. They do not measure the shared-linear/hint model.
-
-The 3D explorer at `http://127.0.0.1:8765/explorer/` remains an unchanged-data historical instrument and is clearly labeled LEGACY PHYSICS RESULTS. See `explorer/README.md`. Its 150 sampled configurations and 3,600 scenario records have not been regenerated. `sweep-analysis.cjs` can still analyze those saved records without running simulations. The old four-parameter `parameter-sweep.cjs` now refuses to execute against the new model, preventing misleading measurements; a new-model sweep is outside this task.
+The remaining application consists of `index.html`, `app.js`, `style.css`, and the shared `physics.js` engine. Live tuning applies to the current session. Historical explorers, automated simulation and parameter-sweep tools, and their generated results have been removed. Preview images in the repository document the interactive application's controls and visual changes.

@@ -6,8 +6,7 @@
  * }});
  * session.advance(0.1);       // explicit seconds, not a wall clock
  * session.retrieve();         // successful; session.skip() advances without a kick
- * const saved = session.getState(); // detached, JSON-serializable checkpoint
- * const resumed = MunduPhysics.restoreSession(saved);
+ * const state = session.getState(); // detached inspection snapshot
  */
 (function (root, factory) {
   const api = factory();
@@ -24,7 +23,6 @@
     finish: Object.freeze({ threshold:90 }),
     instantPosition:false
   });
-  const MODEL='exponential-retrieval-v8';
   const RETRIEVAL=Object.freeze({ hintSeconds:2 });
   const clone = value => JSON.parse(JSON.stringify(value));
   const clamp = (n,low,high) => Math.max(low,Math.min(high,n));
@@ -123,7 +121,7 @@
       (options.wordCount!==undefined && (!Number.isInteger(options.wordCount) || options.wordCount<1))) {
       throw new RangeError('A session needs a positive vocabulary size');
     }
-    let state={version:10,model:MODEL,config,words:vocabulary.map((entry,i)=>({
+    let state={config,words:vocabulary.map((entry,i)=>({
       english:Array.isArray(entry)?String(entry[0]):String(entry.english ?? entry),
       spanish:Array.isArray(entry)?String(entry[1] ?? ''):String(entry.spanish ?? ''),
       streak:0,unlocked:i<config.unlock.initialCount,
@@ -229,25 +227,9 @@
         config=configuration(patch,config); state.config=config;
         if (recheckCompletion) state.complete=false;
         return reconcile();
-      },
-      restore(snapshot) {
-        const saved=clone(snapshot);
-        if (saved.version!==10 || saved.model!==MODEL || !Array.isArray(saved.words) || !saved.words.length ||
-          !Number.isFinite(saved.time) || saved.time<0 || !Number.isFinite(saved.selectedAt) || saved.selectedAt<0 || saved.selectedAt>saved.time ||
-          !Number.isInteger(saved.selectedIndex) || saved.selectedIndex<0 || saved.selectedIndex>=saved.words.length ||
-          typeof saved.hintVisible!=='boolean' || !Number.isInteger(saved.skippedIndex) || saved.skippedIndex< -1 || saved.skippedIndex>=saved.words.length ||
-          !Number.isInteger(saved.skipCount) || saved.skipCount<0 || !Number.isInteger(saved.retrievalCount) || saved.retrievalCount<0 || typeof saved.paused!=='boolean' || typeof saved.complete!=='boolean' ||
-          !saved.words.some(word=>word.unlocked) || saved.words.some(word=>
-            !Number.isFinite(word.depth) || !Number.isFinite(word.shown) || !Number.isFinite(word.initialDepth) ||
-            typeof word.unlocked!=='boolean' || !Number.isInteger(word.streak) || word.streak<0)) throw new RangeError('Invalid session checkpoint');
-        config=configuration(saved.config); state=saved; state.config=config;
-        return api;
       }
     };
     return api;
   }
-  function restoreSession(snapshot) {
-    return createSession({wordCount:1}).restore(snapshot);
-  }
-  return Object.freeze({MODEL,DEFAULTS,RETRIEVAL,createSession,restoreSession,gravityMultiplier,derivedMotion,fieldFallTime,baselineKickTime,timeCoordinate,positionAtTime,reverseFallingTime,scalingFactor,fullKick,fallingSpeed,fallingDepth,kickMultiplier,retrievalMultiplier:kickMultiplier,retrievalLift,wordProgress,isAboveFinish});
+  return Object.freeze({DEFAULTS,RETRIEVAL,createSession,gravityMultiplier,derivedMotion,fieldFallTime,baselineKickTime,timeCoordinate,positionAtTime,reverseFallingTime,scalingFactor,fullKick,fallingSpeed,fallingDepth,kickMultiplier,retrievalMultiplier:kickMultiplier,retrievalLift,wordProgress,isAboveFinish});
 });

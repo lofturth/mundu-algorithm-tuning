@@ -1,8 +1,8 @@
 const test=require('node:test'),assert=require('node:assert/strict');
-const P=require('../physics.js');
+const {Physics:P,stateOf}=require('./physics-harness.cjs').testPhysics();
 const reward=t=>.5+1.5*Math.exp(-1.5*Math.max(0,t));
 const near=(a,b)=>assert.ok(Math.abs(a-b)<1e-9,`${a} != ${b}`);
-function setPositions(s,positions,shown=positions){const state=s.getState();positions.forEach((p,i)=>{state.words[i].depth=p;state.words[i].shown=shown[i];});s.restore(state);}
+function setPositions(s,positions,shown=positions){const state=stateOf(s);positions.forEach((p,i)=>{state.words[i].depth=p;state.words[i].shown=shown[i];});}
 // Keep explicit-second regression cases while configuring the new percentage API.
 function kickSecondsConfig(seconds,motion={}) {
  const session=P.createSession({config:{motion}});
@@ -33,7 +33,7 @@ test('exact elapsed integration decreases position, saturates at zero, and match
 });
 test('successful kick uses the pre-kick logical position and no streak bonus',()=>{
  const s=P.createSession({wordCount:2,config:kickSecondsConfig(10)});setPositions(s,[50,0],[40,0]);
- const state=s.getState();state.words[0].streak=20;s.restore(state);
+ const state=stateOf(s);state.words[0].streak=20;
  const expected=P.fullKick(50,state.config),answer=s.retrieve();
  near(answer.fullLift,expected);near(answer.kickTime,20);near(answer.lift,P.reverseFallingTime(50,20,state.config)-50);near(s.getState().words[0].depth,P.reverseFallingTime(50,20,state.config));
  assert.equal(s.getState().words[0].shown,40);assert.equal(s.getState().words[0].streak,21);
@@ -49,7 +49,7 @@ test('exponential rewards use elapsed time before and after hint',()=>{
  }
 });
 test('hint state does not impose an additional reward penalty',()=>{
- const s=P.createSession(),snapshot=s.getState();snapshot.hintVisible=true;s.restore(snapshot);
+ const s=P.createSession(),snapshot=stateOf(s);snapshot.hintVisible=true;
  const answer=s.retrieve();near(answer.latency,0);near(answer.multiplier,reward(answer.latency));
 });
 test('skip gives no kick, no success, and moves to the next-lowest active prompt',()=>{
@@ -84,7 +84,7 @@ test('arbitrary dataset sizes, one-word start, stationary locked words, and no s
  for(const size of [1,5,31]){const s=P.createSession({wordCount:size});assert.equal(s.getState().words.length,size);
  assert.equal(s.getState().words.filter(w=>w.unlocked).length,1);assert.ok(s.getState().words.every(w=>w.depth===0));assert.equal(s.getProgress(),0);}
  const s=P.createSession({wordCount:4,config:{unlock:{initialCount:3}}});setPositions(s,[50,50,0,0]);
- const state=s.getState();state.words[1].streak=20;s.restore(state);s.advance(1);
+ const state=stateOf(s);state.words[1].streak=20;s.advance(1);
  near(s.getState().words[0].depth,s.getState().words[1].depth);assert.equal(s.getState().words[3].depth,0);
 });
 test('strict NEW WORDS contact unlocks one ordered word; no relocking or progress dilution',()=>{
@@ -114,9 +114,9 @@ test('pause freezes hint timer, physics and input; resume excludes paused durati
  s.advance(50);s.retrieve();s.skip();assert.deepEqual(s.getState(),saved);
  s.setPaused(false);s.advance(.1);assert.equal(s.getState().hintVisible,true);near(s.retrieve().multiplier,reward(2));
 });
-test('detached checkpoints reproduce mixed retrieval/skip runs including active hint and skip state',()=>{
- const a=P.createSession({wordCount:8,config:{unlock:{initialCount:3}}});a.advance(2);a.skip();a.advance(2);
- const b=P.restoreSession(JSON.parse(JSON.stringify(a.getState())));
+test('fresh sessions replay mixed retrieval/skip runs deterministically and getState stays detached',()=>{
+ const a=P.createSession({wordCount:8,config:{unlock:{initialCount:3}}}),b=P.createSession({wordCount:8,config:{unlock:{initialCount:3}}});
+ for(const s of [a,b]){s.advance(2);s.skip();s.advance(2);}
  for(let i=0;i<40;i++){for(const s of [a,b]){s.advance(.17);if(i%7===0)s.skip();else s.retrieve();}}
  assert.deepEqual(a.getState(),b.getState());const snapshot=a.getState();snapshot.words[0].depth=-99;assert.notEqual(a.getState().words[0].depth,-99);
 });
@@ -130,7 +130,7 @@ test('rejects incorrect-answer flags, old configuration, invalid multipliers/tim
 
 test('hint deadline tolerates only floating-point clock noise, not a late grace period',()=>{
  const s=P.createSession();
- const snapshot=s.getState();snapshot.time=8;snapshot.selectedAt=8;s.restore(snapshot);
+ const snapshot=stateOf(s);snapshot.time=8;snapshot.selectedAt=8;
  s.advance(1.99999999999981);assert.equal(s.getState().hintVisible,true);near(s.retrieve().multiplier,reward(2));
 });
 
@@ -192,8 +192,8 @@ test('time-coordinate kicks agree with independently integrated physical falling
 test('speed and hint multipliers scale reversed time, not displacement',()=>{
  for(const [latency,hint,multiplier] of [[0,false],[.5,false],[1,false],[1.5,false],[0,true],[2,true],[100,true]].map(([t,h])=>[t,h,reward(t)])){
   const s=P.createSession({wordCount:2,config:kickSecondsConfig(60,{topFallingSpeed:.1})});
-  const snapshot=s.getState();snapshot.words[0].depth=20;snapshot.words[0].shown=20;
-  snapshot.time=latency;snapshot.selectedAt=0;snapshot.hintVisible=hint;s.restore(snapshot);
+  const snapshot=stateOf(s);snapshot.words[0].depth=20;snapshot.words[0].shown=20;
+  snapshot.time=latency;snapshot.selectedAt=0;snapshot.hintVisible=hint;
   const c=s.getState().config,answer=s.retrieve(),end=s.getState().words[0].depth;
   near(answer.kickTime,60*multiplier);near(answer.multiplier,multiplier);assert.ok(end<100);
   near(P.fallingDepth(end,answer.kickTime,c),20);
@@ -307,9 +307,9 @@ test('kick destinations are unchanged across unlocked counts, including hints an
   let reference;
   for(const n of [1,5,30]){
    const s=P.createSession({wordCount:31,config:{unlock:{initialCount:n}}});
-   const saved=s.getState();saved.time=latency;saved.selectedAt=0;saved.hintVisible=hint;
+   const saved=stateOf(s);saved.time=latency;saved.selectedAt=0;saved.hintVisible=hint;
    saved.words.forEach((word,i)=>{if(word.unlocked){word.depth=i===0?height:100;word.shown=i===0?height:0;}});
-   s.restore(saved);const result=s.retrieve(),end=s.getState().words[0].depth;
+   const result=s.retrieve(),end=s.getState().words[0].depth;
    assert.equal(result.index,0);
    near(result.kickTime,P.baselineKickTime(saved.config,n)*P.retrievalMultiplier(latency,hint));
    if(reference===undefined)reference=end;else near(end,reference);
@@ -318,11 +318,12 @@ test('kick destinations are unchanged across unlocked counts, including hints an
  }
 });
 
-test('gravity settings and unlocked count restore deterministically; overrides take effect live',()=>{
+test('gravity settings and unlocked counts replay deterministically; overrides take effect live',()=>{
  const s=P.createSession({wordCount:8,config:{unlock:{initialCount:3},motion:{gravityReductionPercent:5}}});
- s.advance(1);s.skip();s.advance(2);const restored=P.restoreSession(s.getState());
- for(let i=0;i<20;i++)for(const run of [s,restored]){run.advance(.2);run.retrieve();}
- assert.deepEqual(s.getState(),restored.getState());
+ const replay=P.createSession({wordCount:8,config:{unlock:{initialCount:3},motion:{gravityReductionPercent:5}}});
+ for(const run of [s,replay]){run.advance(1);run.skip();run.advance(2);}
+ for(let i=0;i<20;i++)for(const run of [s,replay]){run.advance(.2);run.retrieve();}
+ assert.deepEqual(s.getState(),replay.getState());
  const saved=s.getState();near(saved.gravityMultiplier,.95**(saved.unlockedWordCount-1));
  s.configure({motion:{gravityReductionPercent:0}});assert.equal(s.getState().gravityMultiplier,1);
  for(const invalid of [-.1,10.1,Infinity,NaN])assert.throws(()=>s.configure({motion:{gravityReductionPercent:invalid}}),RangeError);
@@ -345,23 +346,19 @@ test('normal bottom kick reaches configured reference height across speed, R and
 test('reference-height retrieval bonuses scale time including hinted retrievals',()=>{
  for(const R of [1,3,10])for(const n of [1,5,30])for(const [latency,hint,multiplier] of [[0,false],[1,false],[2,true],[20,true]].map(([t,h])=>[t,h,reward(t)])){
   const s=P.createSession({wordCount:31,config:{motion:{kickHeightPercent:25,bottomToTopMultiplier:R},unlock:{initialCount:n}}});
-  const saved=s.getState();saved.time=latency;saved.selectedAt=0;saved.hintVisible=hint;
-  saved.words.forEach((w,i)=>{if(w.unlocked){w.depth=i===0?0:100;w.shown=0;}});s.restore(saved);
+  const saved=stateOf(s);saved.time=latency;saved.selectedAt=0;saved.hintVisible=hint;
+  saved.words.forEach((w,i)=>{if(w.unlocked){w.depth=i===0?0:100;w.shown=0;}});
   const baseline=P.timeCoordinate(25,saved.config,n),result=s.retrieve(),height=s.getState().words[0].depth;
   near(result.kickTime,baseline*multiplier);near(P.timeCoordinate(height,saved.config,n),result.kickTime);
   s.advance(result.kickTime);near(s.getState().words[0].depth,0);
  }
 });
 
-test('reference height bounds and checkpoint schema safely reject old kick settings',()=>{
+test('reference height bounds safely reject old kick settings',()=>{
  const s=P.createSession();assert.equal(s.getState().config.motion.kickHeightPercent,25);
  for(const height of [0,.9,100.1,Infinity,NaN])assert.throws(()=>s.configure({motion:{kickHeightPercent:height}}),RangeError);
  assert.throws(()=>s.configure({motion:{kickStrengthPercent:50}}),RangeError);
- const old=s.getState();old.version=8;old.model='multiplicative-gravity-v6';assert.throws(()=>P.restoreSession(old),RangeError);
  s.configure({motion:{kickHeightPercent:60,gravityReductionPercent:5}});s.advance(1);s.skip();
- const restored=P.restoreSession(s.getState());assert.deepEqual(restored.getState(),s.getState());
- for(const run of [s,restored]){run.advance(.5);run.retrieve();run.setPaused(true);run.advance(20);run.setPaused(false);run.advance(.1);}
- assert.deepEqual(restored.getState(),s.getState());
  s.configure({motion:{kickHeightPercent:100}});assert.equal(P.reverseFallingTime(95,2*P.baselineKickTime(s.getState().config),s.getState().config),100);
 });
 
@@ -382,7 +379,16 @@ test('hint boundary is continuous and the same elapsed time gives the same kick 
  const eps=1e-6,left=P.kickMultiplier(2-eps),right=P.kickMultiplier(2+eps);
  assert.ok(left>right);assert.ok(Math.abs(left-right)<1e-6);assert.ok(P.kickMultiplier(2)>.5);
  for(const hintVisible of [false,true]){
-  const s=P.createSession(),saved=s.getState();saved.time=2;saved.selectedAt=0;saved.hintVisible=hintVisible;s.restore(saved);
+  const s=P.createSession(),saved=stateOf(s);saved.time=2;saved.selectedAt=0;saved.hintVisible=hintVisible;
   const answer=s.retrieve();near(answer.multiplier,P.kickMultiplier(2));near(answer.kickTime,P.baselineKickTime(saved.config)*P.kickMultiplier(2));
  }
+});
+
+
+test('production API keeps detached inspection but exposes no restoration or schema version',()=>{
+ const Physics=require('../physics.js'),session=Physics.createSession();
+ assert.equal('restoreSession' in Physics,false);assert.equal('restore' in session,false);
+ const view=session.getState();assert.equal('version' in view,false);
+ view.words[0].depth=99;view.config.motion.kickHeightPercent=100;view.retrievalCount=900;
+ const actual=session.getState();assert.equal(actual.words[0].depth,0);assert.equal(actual.config.motion.kickHeightPercent,25);assert.equal(actual.retrievalCount,0);
 });

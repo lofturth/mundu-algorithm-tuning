@@ -2,6 +2,7 @@
 // It does not claim to render layout or CSS.
 const fs=require('node:fs');
 const vm=require('node:vm');
+const {instrumentPhysics}=require('./physics-harness.cjs');
 class Element {
   constructor(){this.attrs={};this.children=[];this.listeners={};this.hidden=false;this.open=false;this.style={setProperty(){}};this.classes=new Set();this.classList={toggle:(k,v)=>{if(v)this.classes.add(k);else this.classes.delete(k);}};this.parentElement={classList:{toggle(){}}};}
   setAttribute(k,v){this.attrs[k]=v;if(k==='id')this.register?.(v,this);}
@@ -27,8 +28,9 @@ function makeHost({html,app,physics,instantPosition=false}){
   };
   let now=0;
   const preference={matches:instantPosition,addEventListener(){}};
-  const context=vm.createContext({document,performance:{now:()=>now},matchMedia:()=>preference,requestAnimationFrame(){}});
-  if(physics)vm.runInContext(physics,context,{filename:'physics.js'});
+  const states=new WeakMap();
+  const context=vm.createContext({__testStates:states,testState:session=>states.get(session),document,performance:{now:()=>now},matchMedia:()=>preference,requestAnimationFrame(){}});
+  if(physics)vm.runInContext(instrumentPhysics(physics),context,{filename:'physics.js'});
   vm.runInContext(app,context,{filename:'app.js'});
   const run=source=>vm.runInContext(source,context);
   return {elements,run,

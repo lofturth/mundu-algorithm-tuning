@@ -130,7 +130,7 @@ test('prototype applies engine retrieval-time multipliers and reports the unaide
 test('word percentages use field height, matching Tune and the fade threshold',()=>{
  const h=host();h.settings('threshold',95,'FINISH');
  for(const [depth,shown,label,faded] of [[90.25,90.25,'90%',false],[94.05,94.05,'94%',false],[95,95,'95%',false],[95.01,95.01,'95%',true],[100,94,'94%',false]]){
-  h.run(`{const saved=session.getState();saved.words[0].depth=${depth};saved.words[0].shown=${shown};session.restore(saved);syncSession();render(0);}`);
+  h.run(`{const saved=testState(session);saved.words[0].depth=${depth};saved.words[0].shown=${shown};syncSession();render(0);}`);
   assert.equal(h.run('nodes[0].streak.textContent'),label);
   assert.equal(h.run('nodes[0].aboveFinish'),faded);
  }
@@ -195,7 +195,7 @@ test('ended prompt graph hides on retrieval/skip, resets for the next prompt, an
 test('Tune effective gravity updates on unlocking, parameter edits and Reset',()=>{
  const h=host();assert.equal(h.elements.get('effective-gravity').textContent,'EFFECTIVE GRAVITY 100.00%');
  assert.equal(h.run("tuningInputs.find(v=>v.key==='gravityReductionPercent').input.value"),'5');
- h.run('{const state=session.getState();state.words[0].depth=51;state.words[0].shown=51;session.restore(state);}');
+ h.run('{const state=testState(session);state.words[0].depth=51;state.words[0].shown=51;}');
  h.advance(.01);assert.equal(h.run('session.getState().unlockedWordCount'),2);
  assert.equal(h.elements.get('effective-gravity').textContent,'EFFECTIVE GRAVITY 95.00%');
  h.settings('gravityReductionPercent',5,'MOTION');assert.equal(h.elements.get('effective-gravity').textContent,'EFFECTIVE GRAVITY 95.00%');
