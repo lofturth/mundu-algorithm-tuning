@@ -1,7 +1,7 @@
 'use strict';
 
 // SVG coordinates are rendering only; engine positions are percentages.
-const TUNE = { width:1200, top:24, bottom:502, reachableTop:60, left:20, right:1180,
+const TUNE = { top:24, bottom:502, reachableTop:60, left:20, right:1180,
   traceMargin:4 };
 // Gravity uses percentage points per second, independent of retrieval streak.
 const MOTION = { ...MunduPhysics.DEFAULTS.motion };
@@ -17,13 +17,12 @@ let session, selectedIndex=0, pendingUnlock=false;
 let wordFlashes=[];
 let kickGraphEnded=false;
 let gravityReadout;
-const COLOR = { grid:'#202738', muted:'#657087', pink:'#ED4CA8', cyan:'#43E6ED' };
+const COLOR = { grid:'#202738', muted:'#657087', pink:'#ED4CA8' };
 const VOCABULARY = [ ['river','río'], ['light','luz'], ['apple','manzana'],
   ['night','noche'], ['house','casa'], ['water','agua'], ['bread','pan'],
   ['bird','pájaro'], ['dream','sueño'], ['window','ventana'] ];
 const NS = 'http://www.w3.org/2000/svg';
 const el = id => document.getElementById(id);
-const clamp = (n,low,high) => Math.max(low,Math.min(high,n));
 const screenY = position => TUNE.bottom-position/100*(TUNE.bottom-TUNE.reachableTop);
 const motionPreference = matchMedia('(prefers-reduced-motion: reduce)');
 let words, observations, progressValue, count, paused=false;
@@ -87,12 +86,9 @@ function recordObservation() {
   observationTimes.push(activeTime);
 }
 
-function wordProgress(word) {
-  return MunduPhysics.wordProgress(word,FINISH.threshold);
-}
 function overallProgress() { return session.getProgress(); }
 
-function advanceProgress(dt) {
+function advanceProgress() {
   progressValue=overallProgress();
   // Sample actual observed positions, never invent intermediate states after
   // a slow frame. The live endpoint is updated on every frame independently.
@@ -283,7 +279,7 @@ function advanceTo(time) {
   if (!paused) {
     wordFlashes=wordFlashes.map(flash=>Math.max(0,flash-dt*2.8));
     acceptTransition(session.advance(dt));
-    advanceProgress(dt); render(dt);
+    advanceProgress(); render(dt);
   }
 }
 function frame(time) {

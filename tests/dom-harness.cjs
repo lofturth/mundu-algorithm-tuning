@@ -1,6 +1,5 @@
 // Minimal integration host: validates referenced HTML IDs and drives actual app.js.
 // It does not claim to render layout or CSS.
-const fs=require('node:fs');
 const vm=require('node:vm');
 const {instrumentPhysics}=require('./physics-harness.cjs');
 class Element {
