@@ -33,7 +33,8 @@ function makeHost({html,app,physics,instantPosition=false}){
   const run=source=>vm.runInContext(source,context);
   return {elements,run,
     advance(seconds){now+=seconds*1000;run(`frame(${now})`);},
-    retrieve(correct=true){for(const fn of listeners.keydown??[])fn({key:correct?'a':'Backspace',code:correct?'KeyA':'Backspace',preventDefault(){}});},
+    retrieve(successful=true){for(const fn of listeners.keydown??[])fn({key:successful?'a':'Escape',code:successful?'KeyA':'Escape',preventDefault(){}});},
+    key(key,code=key){for(const fn of listeners.keydown??[])fn({key,code,preventDefault(){}});},
     click(id){elements.get(id).dispatch('click');},
     settings(key,value,group){run(`tuningInputs.find(v=>v.key===${JSON.stringify(key)}${group?` && v.values===${group}`:''}).input.value=${JSON.stringify(String(value))};`);run(`tuningInputs.find(v=>v.key===${JSON.stringify(key)}${group?` && v.values===${group}`:''}).input.dispatch('input');`);}
   };

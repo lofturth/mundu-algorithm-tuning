@@ -1,13 +1,12 @@
 'use strict';
 
-// All positions use the SVG's fixed coordinate system. No layout reads per frame.
-const TUNE = { width:1200, top:MunduPhysics.DEFAULTS.bounds.top, bottom:MunduPhysics.DEFAULTS.bounds.bottom, left:20, right:1180,
+// SVG coordinates are rendering only; engine positions are percentages.
+const TUNE = { width:1200, top:24, bottom:502, reachableTop:60, left:20, right:1180,
   jumpEase:MunduPhysics.DEFAULTS.bounds.responseRate,
   traceMargin:4 };
-// Gravity uses chart units per second, independent of retrieval streak.
-const GRAVITY = { ...MunduPhysics.DEFAULTS.gravity };
+// Gravity uses percentage points per second, independent of retrieval streak.
+const MOTION = { ...MunduPhysics.DEFAULTS.motion };
 // A selected word starts a new response clock; active session time excludes pause.
-const KICK = { ...MunduPhysics.DEFAULTS.kick };
 // Store all raw observations; limit only the number of rendered vertices.
 const PROGRESS = { sampleSeconds:0.25, historicalVertices:600, rawVertices:1200 };
 const TRACE_LABEL = { gap:12 };
@@ -26,9 +25,10 @@ const VOCABULARY = [ ['river','río'], ['light','luz'], ['apple','manzana'],
 const NS = 'http://www.w3.org/2000/svg';
 const el = id => document.getElementById(id);
 const clamp = (n,low,high) => Math.max(low,Math.min(high,n));
+const screenY = position => TUNE.bottom-position/100*(TUNE.bottom-TUNE.reachableTop);
 const motionPreference = matchMedia('(prefers-reduced-motion: reduce)');
 let words, observations, progressValue, count, paused=false;
-let speed=1, lastTime=null, lastMeasurement=null;
+let lastTime=null, lastMeasurement=null;
 let activeTime=0, nextSampleTime=PROGRESS.sampleSeconds;
 let observationTimes=[];
 const nodes=[];
@@ -42,9 +42,9 @@ function svgNode(type, attributes, parent) {
 // Adapter: wall-clock input, rendering effects and raw history stay here.
 // The engine owns every gameplay position, threshold decision and response timer.
 function physicsConfig() {
-  return {bounds:{top:TUNE.top,bottom:TUNE.bottom,responseRate:TUNE.jumpEase},
-    gravity:{...GRAVITY},kick:{...KICK},unlock:{...UNLOCK},finish:{...FINISH},
-    speed,instantPosition:motionPreference.matches};
+  return {bounds:{responseRate:TUNE.jumpEase},
+    motion:{...MOTION},unlock:{...UNLOCK},finish:{...FINISH},
+    instantPosition:motionPreference.matches};
 }
 function syncSession() {
   const state=session.getState();
@@ -68,14 +68,14 @@ function reset() {
 }
 
 // Retrieval changes only word state; progress observes the resulting movement.
-function retrieve(correct=true) {
+function retrieve(skipped=false) {
   if (paused || sessionComplete) return;
   advanceTo(performance.now());
   if (paused || sessionComplete) return;
   recordObservation();
-  const result=session.retrieve(correct);
+  const result=skipped?session.skip():session.retrieve();
   if (!result) return;
-  if (correct) wordFlashes[result.index]=1;
+  if (!skipped) wordFlashes[result.index]=1;
   lastMeasurement=result;
   acceptTransition(result);
   progressValue=overallProgress(); recordObservation();
@@ -204,14 +204,14 @@ function plottedHistory() {
 }
 
 function buildSvg() {
-  svgNode('line',{id:'unlock-line',x1:TUNE.left,y1:UNLOCK.threshold,x2:TUNE.right,y2:UNLOCK.threshold,
+  svgNode('line',{id:'unlock-line',x1:TUNE.left,y1:screenY(UNLOCK.threshold),x2:TUNE.right,y2:screenY(UNLOCK.threshold),
     stroke:'#8b7aa8','stroke-width':1,'stroke-dasharray':'3 8',opacity:0.65},el('labels'));
-  const unlockLabel=svgNode('text',{id:'unlock-label',x:TUNE.left+3,y:UNLOCK.threshold-7,
+  const unlockLabel=svgNode('text',{id:'unlock-label',x:TUNE.left+3,y:screenY(UNLOCK.threshold)-7,
     fill:'#8b7aa8','font-size':8},el('labels'));
   unlockLabel.textContent='NEW WORDS';
-  svgNode('line',{id:'completion-line',x1:TUNE.left,y1:FINISH.threshold,x2:TUNE.right,y2:FINISH.threshold,
+  svgNode('line',{id:'completion-line',x1:TUNE.left,y1:screenY(FINISH.threshold),x2:TUNE.right,y2:screenY(FINISH.threshold),
     stroke:COLOR.muted,'stroke-width':1,'stroke-dasharray':'5 7',opacity:0.65},el('labels'));
-  const thresholdLabel=svgNode('text',{id:'completion-label',x:TUNE.left+3,y:FINISH.threshold-7,fill:COLOR.muted,'font-size':8},el('labels'));
+  const thresholdLabel=svgNode('text',{id:'completion-label',x:TUNE.left+3,y:screenY(FINISH.threshold)-7,fill:COLOR.muted,'font-size':8},el('labels'));
   thresholdLabel.textContent='COMPLETION';
   for (let i=0;i<=4;i++) {
     const y=TUNE.top+i*(TUNE.bottom-TUNE.top)/4;
@@ -244,7 +244,7 @@ function render(dt) {
   const unlocked=pendingUnlock; pendingUnlock=false;
   words.forEach((word,i) => {
     const node=nodes[i];
-    const {bar,edge,label,streak,guide,index}=node, y=word.shown;
+    const {bar,edge,label,streak,guide,index}=node, y=screenY(word.shown);
     for (const element of [bar,edge,label,streak,guide,index]) {
       element.setAttribute('visibility',word.unlocked?'visible':'hidden');
     }
@@ -261,7 +261,7 @@ function render(dt) {
     edge.setAttribute('stroke-width',1.3+word.flash*1.5);
     label.setAttribute('y',y-12);
     label.setAttribute('fill',word.flash>0.2 || node.reactivation>0?COLOR.pink:'#e3e8ef');
-    streak.setAttribute('y',y+16); streak.textContent=Math.round(100*wordProgress(word))+'%';
+    streak.setAttribute('y',y+16); streak.textContent=Math.round(Math.min(word.depth,word.shown))+'%';
     streak.setAttribute('font-size',15);
     streak.setAttribute('font-weight',700);
     streak.setAttribute('fill',COLOR.pink);
@@ -282,13 +282,16 @@ function render(dt) {
   el('trace-percentage').textContent=progressValue.toFixed(1)+'%';
   const target=words[selectedIndex]; el('target-word').textContent=target.english;
   el('target-streak').textContent='STREAK '+String(target.streak).padStart(2,'0');
+  const hinted=session.getState().hintVisible;
+  el('target-hint').hidden=!hinted;
+  el('target-hint').textContent=hinted?'HINT → '+target.spanish+' / HALF KICK':'';
   checkCompletion();
 }
 
 function updateReadouts() {
   el('count').textContent=String(count).padStart(3,'0');
   el('score').textContent=progressValue.toFixed(1);
-  el('feedback').textContent=lastMeasurement ? `${lastMeasurement.word} → ${lastMeasurement.translation} / ${lastMeasurement.correct?'correct / '+lastMeasurement.latency.toFixed(2)+'s / ↑'+lastMeasurement.lift.toFixed(0):'mistake · streak broken'}` : 'Ten words. One key. Keep them afloat.';
+  el('feedback').textContent=lastMeasurement ? `${lastMeasurement.word} → ${lastMeasurement.translation} / ${lastMeasurement.kind==='retrieval'?(lastMeasurement.hintVisible?'hinted / half kick':'unhinted / '+lastMeasurement.multiplier.toFixed(2)+'× kick')+' / ↑'+lastMeasurement.lift.toFixed(1)+' pp':'skipped / no kick'}` : 'Ten words. One key. Keep them afloat.';
 }
 
 function updateStatus() {
@@ -297,16 +300,18 @@ function updateStatus() {
   el('status').parentElement.classList.toggle('paused',paused);
   el('pause').innerHTML=paused?'RESUME <span>▶</span>':'PAUSE <span>Ⅱ</span>';
   el('pause').setAttribute('aria-pressed',String(paused));
-  el('prompt').textContent=sessionComplete?'ALL WORDS CLEAR / RESET TO RESTART':paused?'SESSION PAUSED / RESUME TO RETRIEVE':'LETTER = CORRECT / BACKSPACE = MISTAKE';
+  el('prompt').textContent=sessionComplete?'ALL WORDS CLEAR / RESET TO RESTART':paused?'SESSION PAUSED / RESUME TO RETRIEVE':'LETTER = RETRIEVE / ESC = SKIP';
 }
 
 // Physical letter keys accept all layouts; modifier shortcuts retain browser behavior.
 document.addEventListener('keydown',event => {
-  if (event.target?.matches('input, select, textarea')) return;
   if (event.ctrlKey||event.metaKey||event.altKey||event.isComposing) return;
-  if (event.key==='Backspace') {
-    event.preventDefault(); retrieve(false);
-  } else if (/^Key[A-Z]$/.test(event.code) || /^\p{L}$/u.test(event.key)) {
+  if (event.key==='Escape') {
+    event.preventDefault();
+    retrieve(true);return;
+  }
+  if (event.target?.matches('input, select, textarea')) return;
+  if (/^Key[A-Z]$/.test(event.code) || /^\p{L}$/u.test(event.key)) {
     event.preventDefault(); retrieve();
   }
 });
@@ -316,9 +321,6 @@ el('pause').addEventListener('click',() => {
   session.setPaused(!paused); syncSession(); lastTime=performance.now(); updateStatus();
 });
 el('reset').addEventListener('click',reset);
-el('speed').addEventListener('change',event => {
-  speed=Number(event.target.value); acceptTransition(session.configure({speed}));
-});
 motionPreference.addEventListener?.('change',() => {
   acceptTransition(session.configure({instantPosition:motionPreference.matches}));
 });
@@ -342,31 +344,27 @@ const SETTINGS = [
     ['jumpEase','Lift animation speed','Higher = faster bar animation',1,40,1]]},
   {name:'PROGRESSIVE WORDS',values:UNLOCK,fields:[
     ['initialCount','Starting words','Applied on the next session Reset',1,10,1],
-    ['threshold','NEW WORDS line depth','Must be below completion and above the floor',62,501,1]]},
-  {name:'RESPONSE-TIMED KICK',values:KICK,fields:[
-    ['minLift','Slow response lift','Smallest upward kick',1,100,1],
-    ['maxLift','Quick response lift','Largest upward kick',10,400,1],
-    ['fastSeconds','Quick response cutoff','Seconds; full kick at or below this',0,2,0.05],
-    ['slowSeconds','Slow response cutoff','Seconds; minimum kick at or above this',0.1,10,0.1]]},
-  {name:'POSITION GRAVITY',values:GRAVITY,fields:[
-    ['minSpeed','Speed above finish line','Chart units / second; independent of streak',0.1,30,0.1],
-    ['maxSpeed','Speed at the bottom','Chart units / second; must be ≥ top speed',0.1,60,0.1]]},
+    ['threshold','NEW WORDS position (%)','0% = bottom; must stay below completion',100/442,44000/442,0.1]]},
+  {name:'SHARED LINEAR PHYSICS',values:MOTION,fields:[
+    ['topFallingSpeed','Top falling speed','At top; percentage points / second',0.01,15,0.01],
+    ['bottomToTopMultiplier','Bottom-to-top multiplier','Bottom ÷ top for falling and kicks; 3 = three times',1,1000,0.1],
+    ['kickStrengthPercent','Kick strength (% of field)','% of field falling time reversed by a 1× kick',0.1,200,0.1]]},
   {name:'HISTORICAL SMOOTHING',values:SMOOTH,fields:[
     ['rawSeconds','Raw bleeding edge','Seconds of completely unsmoothed activity',0.1,3,0.1],
     ['settleSeconds','Time to become smooth','Seconds after leaving the raw edge',0.1,5,0.1],
     ['maxWindowSeconds','Oldest averaging window','Seconds; larger = calmer history',0,15,0.5],
     ['maxBlend','Historical smoothing strength','0 = raw; 1 = fully smoothed tail',0,1,0.05]]},
   {name:'COMPLETION LINE',values:FINISH,fields:[
-    ['threshold','Completion line depth','Smaller = higher / harder to reach',61,250,1]]}
+    ['threshold','Completion position (%)','Higher percentage = higher / harder to reach',25200/442,44100/442,0.1]]}
 ];
 const tuningInputs=[];
 function refreshTuning(recheckCompletion=false) {
-  el('unlock-line').setAttribute('y1',UNLOCK.threshold);
-  el('unlock-line').setAttribute('y2',UNLOCK.threshold);
-  el('unlock-label').setAttribute('y',UNLOCK.threshold-7);
-  el('completion-line').setAttribute('y1',FINISH.threshold);
-  el('completion-line').setAttribute('y2',FINISH.threshold);
-  el('completion-label').setAttribute('y',FINISH.threshold-7);
+  el('unlock-line').setAttribute('y1',screenY(UNLOCK.threshold));
+  el('unlock-line').setAttribute('y2',screenY(UNLOCK.threshold));
+  el('unlock-label').setAttribute('y',screenY(UNLOCK.threshold)-7);
+  el('completion-line').setAttribute('y1',screenY(FINISH.threshold));
+  el('completion-line').setAttribute('y2',screenY(FINISH.threshold));
+  el('completion-label').setAttribute('y',screenY(FINISH.threshold)-7);
   if (recheckCompletion) completionPresented=false;
   acceptTransition(session.configure(physicsConfig(),{recheckCompletion}));
   updateStatus(); render(0);
@@ -388,19 +386,17 @@ function buildTuning() {
       caption.appendChild(name); caption.appendChild(note);
       const input=document.createElement('input');
       input.type='number'; input.min=min; input.max=max; input.step=step;
-      input.value=group.values[key]; input.title=key;
+      input.value=Number(group.values[key].toFixed(6)); input.title=key;
       const original=group.values[key];
       const commit=() => {
         const value=Number(input.value);
         if (input.value.trim()==='' || !Number.isFinite(value) || value<min || value>max || (step===1 && !Number.isInteger(value))) return false;
-        if (key==='threshold' && ((group.values===UNLOCK && value<=FINISH.threshold) || (group.values===FINISH && value>=UNLOCK.threshold))) return false;
-        if (group.values===KICK && ((key==='minLift' && value>KICK.maxLift) || (key==='maxLift' && value<KICK.minLift) || (key==='fastSeconds' && value>=KICK.slowSeconds) || (key==='slowSeconds' && value<=KICK.fastSeconds))) return false;
-        if (group.values===GRAVITY && ((key==='minSpeed' && value>GRAVITY.maxSpeed) || (key==='maxSpeed' && value<GRAVITY.minSpeed))) return false;
+        if (key==='threshold' && ((group.values===UNLOCK && value>=FINISH.threshold) || (group.values===FINISH && value<=UNLOCK.threshold))) return false;
         if (!paused) advanceTo(performance.now());
         group.values[key]=value; refreshTuning(group.values===FINISH); return true;
       };
       input.addEventListener('input',commit);
-      input.addEventListener('change',() => { if (!commit()) input.value=group.values[key]; });
+      input.addEventListener('change',() => { if (!commit()) input.value=Number(group.values[key].toFixed(6)); });
       row.appendChild(caption); row.appendChild(input); fieldset.appendChild(row);
       tuningInputs.push({input,values:group.values,key,original});
     }
@@ -409,11 +405,8 @@ function buildTuning() {
   el('tune').addEventListener('click',() => setTuningOpen(el('tuning-panel').hidden));
   el('tuning-close').addEventListener('click',() => { setTuningOpen(false); el('tune').focus(); });
   el('tuning-defaults').addEventListener('click',() => {
-    for (const {input,values,key,original} of tuningInputs) { values[key]=original; input.value=original; }
+    for (const {input,values,key,original} of tuningInputs) { values[key]=original; input.value=Number(values[key].toFixed(6)); }
     refreshTuning(true);
-  });
-  document.addEventListener('keydown',event => {
-    if (event.key==='Escape' && !el('tuning-panel').hidden) { setTuningOpen(false); el('tune').focus(); }
   });
 }
 function buildCompletionScreen() {
