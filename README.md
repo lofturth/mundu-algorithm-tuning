@@ -55,6 +55,8 @@ The initial active count remains **one**. Dataset-order tie-breaking and lowest 
 
 The whole-number label beneath each word shows its completion height in field percentages (the lower of logical and displayed height), using the same 0–100% scale as Tune. Whole-number rounding can show 90% slightly before or after the exact 90% boundary; fading still requires strictly crossing it.
 
+A compact kick graph beside the retrieval prompt displays the existing multiplier curve in magenta and a live cyan indicator. Its elapsed time comes directly from engine `time - selectedAt`; actual `hintVisible` and `retrievalMultiplier` determine the indicator. Open/closed markers and a dashed drop distinguish the two-second discontinuity. Pause freezes it, and its time axis expands after four seconds to keep long waits visible. Ending a prompt hides its graph; because the game immediately creates the next prompt, its reset graph appears on the next animation frame. Completion keeps it hidden. There is no separate graph timer and no change to rewards or physics.
+
 Overall progress still averages word progress toward the completion threshold, using the lower of logical and displayed positions. The complete timestamped history, visual smoothing, percentage label, ghosting, and completion overlay remain in `app.js`.
 
 ## Engine API

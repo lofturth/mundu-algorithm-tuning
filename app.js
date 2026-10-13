@@ -18,6 +18,7 @@ const UNLOCK = { ...MunduPhysics.DEFAULTS.unlock };
 let sessionComplete=false, completionPresented=false;
 let session, selectedIndex=0, pendingUnlock=false;
 let wordFlashes=[];
+let kickGraphEnded=false;
 const COLOR = { grid:'#202738', muted:'#657087', pink:'#ED4CA8', cyan:'#43E6ED' };
 const VOCABULARY = [ ['river','río'], ['light','luz'], ['apple','manzana'],
   ['night','noche'], ['house','casa'], ['water','agua'], ['bread','pan'],
@@ -60,6 +61,7 @@ function reset() {
   if (el('completion-screen').open) el('completion-screen').close();
   session=MunduPhysics.createSession({vocabulary:VOCABULARY,config:physicsConfig()});
   wordFlashes=VOCABULARY.map(()=>0); pendingUnlock=false; completionPresented=false;
+  kickGraphEnded=false;
   observations=[0]; observationTimes=[0]; nextSampleTime=PROGRESS.sampleSeconds;
   progressValue=0; lastMeasurement=null;
   for (const node of nodes) { node.aboveFinish=undefined; node.reactivation=0; }
@@ -77,6 +79,7 @@ function retrieve(skipped=false) {
   if (!result) return;
   if (!skipped) wordFlashes[result.index]=1;
   lastMeasurement=result;
+  kickGraphEnded=true; // Retire the old graph; the next animation frame shows the fresh prompt.
   acceptTransition(result);
   progressValue=overallProgress(); recordObservation();
   updateReadouts(); render(0); checkCompletion();
@@ -240,6 +243,38 @@ function wordAboveFinish(word) {
   return MunduPhysics.isAboveFinish(word,FINISH.threshold);
 }
 
+function renderKickGraph(state,dt) {
+  if(dt>0)kickGraphEnded=false;
+  const graph=el('kick-graph');
+  graph.hidden=state.complete || state.selectedIndex<0 || kickGraphEnded;
+  graph.setAttribute('aria-hidden',String(graph.hidden));
+  if(state.complete || state.selectedIndex<0)return;
+  const elapsed=Math.max(0,state.time-state.selectedAt);
+  const hintSeconds=MunduPhysics.RETRIEVAL.hintSeconds;
+  const windowSeconds=Math.max(4,elapsed);
+  const x=t=>32+192*t/windowSeconds;
+  const y=m=>64-52*m/MunduPhysics.retrievalMultiplier(0,false);
+  const before=MunduPhysics.retrievalMultiplier(hintSeconds,false);
+  const after=MunduPhysics.retrievalMultiplier(hintSeconds,true);
+  const multiplier=MunduPhysics.retrievalMultiplier(elapsed,state.hintVisible);
+  const hintX=x(hintSeconds);
+  el('kick-reward-curve').setAttribute('d',`M32 ${y(MunduPhysics.retrievalMultiplier(0,false))} L${hintX} ${y(before)} M${hintX} ${y(after)} L224 ${y(after)}`);
+  for(const id of ['kick-reward-drop','kick-hint-guide']){
+    el(id).setAttribute('x1',hintX);el(id).setAttribute('x2',hintX);
+  }
+  el('kick-reward-drop').setAttribute('y1',y(before));el('kick-reward-drop').setAttribute('y2',y(after));
+  for(const [id,m] of [['kick-before-hint',before],['kick-after-hint',after]]){
+    el(id).setAttribute('cx',hintX);el(id).setAttribute('cy',y(m));
+  }
+  el('kick-indicator').setAttribute('cx',x(elapsed));el('kick-indicator').setAttribute('cy',y(multiplier));
+  el('kick-one-second').setAttribute('x',x(1));el('kick-hint-time').setAttribute('x',hintX);
+  el('kick-one-second').setAttribute('visibility',x(hintSeconds)-x(1)>=18?'visible':'hidden');
+  el('kick-hint-time').setAttribute('visibility',hintX-x(0)>=24?'visible':'hidden');
+  el('kick-hint-time').textContent=hintSeconds+'s';el('kick-axis-end').textContent=windowSeconds.toFixed(1)+'s';
+  el('kick-graph-value').textContent=elapsed.toFixed(1)+'s / '+multiplier.toFixed(2)+'×';
+  el('kick-graph-svg').setAttribute('aria-label',`Possible kick: ${multiplier.toFixed(2)} times at ${elapsed.toFixed(1)} seconds; hint at ${hintSeconds} seconds`);
+}
+
 function render(dt) {
   const unlocked=pendingUnlock; pendingUnlock=false;
   words.forEach((word,i) => {
@@ -282,7 +317,9 @@ function render(dt) {
   el('trace-percentage').textContent=progressValue.toFixed(1)+'%';
   const target=words[selectedIndex]; el('target-word').textContent=target.english;
   el('target-streak').textContent='STREAK '+String(target.streak).padStart(2,'0');
-  const hinted=session.getState().hintVisible;
+  const promptState=session.getState();
+  renderKickGraph(promptState,dt);
+  const hinted=promptState.hintVisible;
   el('target-hint').hidden=!hinted;
   el('target-hint').textContent=hinted?'HINT → '+target.spanish+' / HALF KICK':'';
   checkCompletion();

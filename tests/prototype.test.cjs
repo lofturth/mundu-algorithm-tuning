@@ -150,3 +150,41 @@ test('Tune exposes % of field, supports above 100%, and keeps strength on speed 
  h.click('tuning-defaults');h.click('reset');
  assert.equal(h.run('session.getState().config.motion.kickStrengthPercent'),50);
 });
+
+
+test('kick graph follows the shared timer and actual hint state, including the discontinuity',()=>{
+ const h=host();assert.equal(h.elements.get('kick-graph').hidden,false);
+ compare(Number(h.elements.get('kick-indicator').attrs.cx),32);compare(Number(h.elements.get('kick-indicator').attrs.cy),12);
+ h.advance(1);compare(Number(h.elements.get('kick-indicator').attrs.cx),80);compare(Number(h.elements.get('kick-indicator').attrs.cy),25);
+ assert.equal(h.elements.get('kick-graph-value').textContent,'1.0s / 1.50×');
+ h.advance(.999);assert.equal(h.run('session.getState().hintVisible'),false);
+ compare(Number(h.elements.get('kick-indicator').attrs.cy),64-26*1.0005);
+ h.advance(.001);assert.equal(h.run('session.getState().hintVisible'),true);
+ compare(Number(h.elements.get('kick-indicator').attrs.cx),128);compare(Number(h.elements.get('kick-indicator').attrs.cy),51);
+ compare(Number(h.elements.get('kick-reward-drop').attrs.y1),38);compare(Number(h.elements.get('kick-reward-drop').attrs.y2),51);
+ h.advance(58);assert.equal(h.elements.get('kick-graph-value').textContent,'60.0s / 0.50×');
+ compare(Number(h.elements.get('kick-indicator').attrs.cx),224);compare(Number(h.elements.get('kick-indicator').attrs.cy),51);
+ assert.equal(h.elements.get('kick-axis-end').textContent,'60.0s');
+ assert.ok(!/NaN|undefined/.test(h.elements.get('kick-reward-curve').attrs.d));
+});
+
+test('kick graph freezes on Pause and resumes the hint timer without counting paused duration',()=>{
+ const h=host();h.advance(1.1);h.click('pause');
+ const before=JSON.stringify(h.elements.get('kick-indicator').attrs),readout=h.elements.get('kick-graph-value').textContent;
+ h.advance(20);assert.equal(JSON.stringify(h.elements.get('kick-indicator').attrs),before);assert.equal(h.elements.get('kick-graph-value').textContent,readout);
+ assert.equal(h.elements.get('kick-graph').hidden,false);
+ h.click('pause');h.advance(.9);assert.equal(h.elements.get('kick-graph-value').textContent,'2.0s / 0.50×');
+});
+
+test('ended prompt graph hides on retrieval/skip, resets for the next prompt, and hides on completion',()=>{
+ const h=host();h.settings('kickStrengthPercent',1,'MOTION');h.advance(1);h.retrieve();
+ assert.equal(h.elements.get('kick-graph').hidden,true);assert.equal(h.elements.get('kick-graph-value').textContent,'0.0s / 2.00×');
+ compare(Number(h.elements.get('kick-indicator').attrs.cx),32);
+ h.advance(.01);assert.equal(h.elements.get('kick-graph').hidden,false);
+ h.key('Escape');assert.equal(h.elements.get('kick-graph').hidden,true);compare(Number(h.elements.get('kick-indicator').attrs.cx),32);
+ h.advance(.01);assert.equal(h.elements.get('kick-graph').hidden,false);
+ h.click('reset');assert.equal(h.elements.get('kick-graph').hidden,false);assert.equal(h.elements.get('kick-graph-value').textContent,'0.0s / 2.00×');
+ const completed=host();for(let i=0;i<300&&!completed.run('sessionComplete');i++){completed.advance(.1);completed.retrieve();}
+ assert.equal(completed.run('sessionComplete'),true);assert.equal(completed.elements.get('kick-graph').hidden,true);
+ assert.equal(completed.elements.get('kick-graph').attrs['aria-hidden'],'true');
+});
