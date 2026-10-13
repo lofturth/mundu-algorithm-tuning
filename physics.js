@@ -17,7 +17,7 @@
   // Positions and lifts are percentages (0 = bottom, 100 = top).
   // Falling speeds are positive magnitudes in percentage points per second.
   const DEFAULTS = Object.freeze({
-    bounds: Object.freeze({ top:100, bottom:0, responseRate:15 }),
+    bounds: Object.freeze({ top:100, bottom:0 }),
     motion: Object.freeze({ topFallingSpeed:1, kickHeightPercent:25, bottomToTopMultiplier:5, gravityReductionPercent:5 }),
     unlock: Object.freeze({ initialCount:1, threshold:50 }),
     finish: Object.freeze({ threshold:90 }),
@@ -39,7 +39,7 @@
     }
     config.instantPosition=patch.instantPosition ?? previous.instantPosition;
     const {bounds:b,motion:m,unlock:u,finish:f}=config;
-    if (!(b.responseRate>0 && b.bottom===0 && b.top===100 && b.bottom<u.threshold &&
+    if (!(b.bottom===0 && b.top===100 && b.bottom<u.threshold &&
       u.threshold<f.threshold && f.threshold<b.top && m.topFallingSpeed>0 && m.kickHeightPercent>=1 && m.kickHeightPercent<=100 && Number.isFinite(m.topFallingSpeed*m.bottomToTopMultiplier) && m.bottomToTopMultiplier>=1 && m.gravityReductionPercent>=0 && m.gravityReductionPercent<=10 &&
       Number.isInteger(u.initialCount) && u.initialCount>=1 &&
       typeof config.instantPosition==='boolean')) throw new RangeError('Invalid physics configuration');
@@ -180,7 +180,7 @@
           word.depth=fallingDepth(word.depth,dt,config,activeCount);
           // A numerical response position, not a browser animation: threshold
           // checks historically wait for this position as well as logical depth.
-          word.shown=config.instantPosition?word.depth:word.shown+(word.depth-word.shown)*(1-Math.exp(-config.bounds.responseRate*dt));
+          word.shown=config.instantPosition?word.depth:word.shown+(word.depth-word.shown)*(1-Math.exp(-15*dt));
         }
         state.time+=dt;
         return reconcile();

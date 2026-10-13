@@ -2,7 +2,6 @@
 
 // SVG coordinates are rendering only; engine positions are percentages.
 const TUNE = { width:1200, top:24, bottom:502, reachableTop:60, left:20, right:1180,
-  jumpEase:MunduPhysics.DEFAULTS.bounds.responseRate,
   traceMargin:4 };
 // Gravity uses percentage points per second, independent of retrieval streak.
 const MOTION = { ...MunduPhysics.DEFAULTS.motion };
@@ -42,8 +41,7 @@ function svgNode(type, attributes, parent) {
 // Adapter: wall-clock input, rendering effects and raw history stay here.
 // The engine owns every gameplay position, threshold decision and response timer.
 function physicsConfig() {
-  return {bounds:{responseRate:TUNE.jumpEase},
-    motion:{...MOTION},unlock:{...UNLOCK},finish:{...FINISH},
+  return {motion:{...MOTION},unlock:{...UNLOCK},finish:{...FINISH},
     instantPosition:motionPreference.matches};
 }
 function syncSession() {
@@ -294,8 +292,6 @@ function frame(time) {
 }
 // Live tuning stays separate from session state. Reload restores these defaults.
 const SETTINGS = [
-  {name:'WORD PHYSICS',values:TUNE,fields:[
-    ['jumpEase','Lift animation speed','Higher = faster bar animation',1,40,1]]},
   {name:'PROGRESSIVE WORDS',values:UNLOCK,fields:[
     ['initialCount','Starting words','Applied on the next session Reset',1,10,1],
     ['threshold','NEW WORDS position (%)','0% = bottom; must stay below completion',100/442,44000/442,0.1]]},

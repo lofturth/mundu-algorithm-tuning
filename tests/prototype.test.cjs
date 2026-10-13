@@ -40,7 +40,9 @@ test('local scripts load in order; controls, tuning and default settings still w
  h.settings('kickHeightPercent',30,'MOTION');assert.equal(h.run('session.getState().config.motion.kickHeightPercent'),30);
  assert.equal(h.run("tuningInputs.find(v=>v.key==='bottomToTopMultiplier').input.value"),'5');
  h.settings('bottomToTopMultiplier',2,'MOTION');assert.equal(h.run('session.getState().config.motion.bottomToTopMultiplier'),2);
- h.settings('jumpEase',12,'TUNE');assert.equal(h.run('session.getState().config.bounds.responseRate'),12);
+ assert.equal(h.run("tuningInputs.some(v=>v.key==='jumpEase')"),false);
+ assert.equal('responseRate' in h.run('session.getState().config.bounds'),false);
+ assert.ok(files.html.includes('PROGRESS HISTORY'));
  h.settings('initialCount',3,'UNLOCK');assert.equal(h.run('words.filter(w=>w.unlocked).length'),1);
  h.click('reset');assert.equal(h.run('words.filter(w=>w.unlocked).length'),3);
  h.click('tuning-defaults');h.click('reset');
@@ -48,6 +50,16 @@ test('local scripts load in order; controls, tuning and default settings still w
  assert.equal(h.run('session.getState().config.motion.topFallingSpeed'),1);
  assert.equal(h.run('session.getState().config.motion.kickHeightPercent'),25);
  assert.equal(h.run("tuningInputs.some(v=>v.key==='baseKick'||v.key==='baseFallingSpeed'||v.key==='kickStrengthPercent')"),false);
+});
+test('word lifts keep fixed 15/second settling and reduced-motion support',()=>{
+ const h=host();h.retrieve();
+ assert.ok(h.run('words[0].depth')>0);assert.equal(h.run('words[0].shown'),0);
+ h.advance(.1);
+ compare(h.run('words[0].shown'),h.run('words[0].depth')*(1-Math.exp(-15*.1)));
+ const reduced=host({instantPosition:true});reduced.retrieve();
+ compare(reduced.run('words[0].shown'),reduced.run('words[0].depth'));
+ reduced.advance(.1);
+ compare(reduced.run('words[0].shown'),reduced.run('words[0].depth'));
 });
 test('progress keeps every raw history sample, live endpoint and percentages',()=>{
  const h=host();h.advance(.1);h.retrieve();h.advance(.15);
