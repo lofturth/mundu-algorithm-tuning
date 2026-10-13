@@ -24,8 +24,8 @@
     finish: Object.freeze({ threshold:90 }),
     instantPosition:false
   });
-  const MODEL='reference-kick-height-v7';
-  const RETRIEVAL=Object.freeze({ hintSeconds:2, hintedMultiplier:0.5 });
+  const MODEL='exponential-retrieval-v8';
+  const RETRIEVAL=Object.freeze({ hintSeconds:2 });
   const clone = value => JSON.parse(JSON.stringify(value));
   const clamp = (n,low,high) => Math.max(low,Math.min(high,n));
   function configuration(patch={}, previous=DEFAULTS) {
@@ -108,11 +108,12 @@
     const x=clamp(position,0,100);
     return dt===0?x:positionAtTime(timeCoordinate(x,config,unlockedWordCount)-dt,config,unlockedWordCount);
   }
-  function retrievalMultiplier(latency,hintVisible=false) {
-    return hintVisible?RETRIEVAL.hintedMultiplier:2-clamp(latency,0,RETRIEVAL.hintSeconds)/2;
+  function kickMultiplier(elapsedSeconds) {
+    const t=Math.max(0,elapsedSeconds);
+    return 0.5+1.5*Math.exp(-1.5*t);
   }
-  function retrievalLift(position,config,hintVisible=false,latency=0,unlockedWordCount=1) {
-    const kickTime=baselineKickTime(config,unlockedWordCount)*retrievalMultiplier(latency,hintVisible);
+  function retrievalLift(position,config,_hintVisible=false,latency=0,unlockedWordCount=1) {
+    const kickTime=baselineKickTime(config,unlockedWordCount)*kickMultiplier(latency);
     return reverseFallingTime(position,kickTime,config,unlockedWordCount)-clamp(position,0,100);
   }
   function createSession(options={}) {
@@ -122,7 +123,7 @@
       (options.wordCount!==undefined && (!Number.isInteger(options.wordCount) || options.wordCount<1))) {
       throw new RangeError('A session needs a positive vocabulary size');
     }
-    let state={version:9,model:MODEL,config,words:vocabulary.map((entry,i)=>({
+    let state={version:10,model:MODEL,config,words:vocabulary.map((entry,i)=>({
       english:Array.isArray(entry)?String(entry[0]):String(entry.english ?? entry),
       spanish:Array.isArray(entry)?String(entry[1] ?? ''):String(entry.spanish ?? ''),
       streak:0,unlocked:i<config.unlock.initialCount,
@@ -197,7 +198,7 @@
         word.depth=clamp(previousDepth+retrievalLift(previousDepth,config,hintVisible,latency,activeCount),config.bounds.bottom,config.bounds.top);
         if(config.instantPosition)word.shown=word.depth;
         const result={kind:'retrieval',index,word:word.english,translation:word.spanish,latency,hintVisible,
-          multiplier:retrievalMultiplier(latency,hintVisible),kickTime:baselineKickTime(config,activeCount)*retrievalMultiplier(latency,hintVisible),fullLift,lift:word.depth-previousDepth};
+          multiplier:kickMultiplier(latency),kickTime:baselineKickTime(config,activeCount)*kickMultiplier(latency),fullLift,lift:word.depth-previousDepth};
         state.lastRetrieval=result;state.retrievalCount++;
         state.skippedIndex=-1;state.selectedIndex=-1;
         Object.assign(result,reconcile());return clone(result);
@@ -231,7 +232,7 @@
       },
       restore(snapshot) {
         const saved=clone(snapshot);
-        if (saved.version!==9 || saved.model!==MODEL || !Array.isArray(saved.words) || !saved.words.length ||
+        if (saved.version!==10 || saved.model!==MODEL || !Array.isArray(saved.words) || !saved.words.length ||
           !Number.isFinite(saved.time) || saved.time<0 || !Number.isFinite(saved.selectedAt) || saved.selectedAt<0 || saved.selectedAt>saved.time ||
           !Number.isInteger(saved.selectedIndex) || saved.selectedIndex<0 || saved.selectedIndex>=saved.words.length ||
           typeof saved.hintVisible!=='boolean' || !Number.isInteger(saved.skippedIndex) || saved.skippedIndex< -1 || saved.skippedIndex>=saved.words.length ||
@@ -248,5 +249,5 @@
   function restoreSession(snapshot) {
     return createSession({wordCount:1}).restore(snapshot);
   }
-  return Object.freeze({MODEL,DEFAULTS,RETRIEVAL,createSession,restoreSession,gravityMultiplier,derivedMotion,fieldFallTime,baselineKickTime,timeCoordinate,positionAtTime,reverseFallingTime,scalingFactor,fullKick,fallingSpeed,fallingDepth,retrievalMultiplier,retrievalLift,wordProgress,isAboveFinish});
+  return Object.freeze({MODEL,DEFAULTS,RETRIEVAL,createSession,restoreSession,gravityMultiplier,derivedMotion,fieldFallTime,baselineKickTime,timeCoordinate,positionAtTime,reverseFallingTime,scalingFactor,fullKick,fallingSpeed,fallingDepth,kickMultiplier,retrievalMultiplier:kickMultiplier,retrievalLift,wordProgress,isAboveFinish});
 });

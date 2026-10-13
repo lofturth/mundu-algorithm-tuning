@@ -254,19 +254,17 @@ function renderKickGraph(state,dt) {
   const hintSeconds=MunduPhysics.RETRIEVAL.hintSeconds;
   const windowSeconds=Math.max(4,elapsed);
   const x=t=>32+192*t/windowSeconds;
-  const y=m=>64-52*m/MunduPhysics.retrievalMultiplier(0,false);
-  const before=MunduPhysics.retrievalMultiplier(hintSeconds,false);
-  const after=MunduPhysics.retrievalMultiplier(hintSeconds,true);
-  const multiplier=MunduPhysics.retrievalMultiplier(elapsed,state.hintVisible);
-  const hintX=x(hintSeconds);
-  el('kick-reward-curve').setAttribute('d',`M32 ${y(MunduPhysics.retrievalMultiplier(0,false))} L${hintX} ${y(before)} M${hintX} ${y(after)} L224 ${y(after)}`);
-  for(const id of ['kick-reward-drop','kick-hint-guide']){
-    el(id).setAttribute('x1',hintX);el(id).setAttribute('x2',hintX);
-  }
-  el('kick-reward-drop').setAttribute('y1',y(before));el('kick-reward-drop').setAttribute('y2',y(after));
-  for(const [id,m] of [['kick-before-hint',before],['kick-after-hint',after]]){
-    el(id).setAttribute('cx',hintX);el(id).setAttribute('cy',y(m));
-  }
+  const y=m=>64-52*m/MunduPhysics.kickMultiplier(0);
+  const multiplier=MunduPhysics.kickMultiplier(elapsed);
+  const hintX=x(hintSeconds),denseEnd=Math.min(windowSeconds,8);
+  const curvePoints=Array.from({length:97},(_,i)=>{
+    const t=denseEnd*i/96;
+    return `${i===0?'M':'L'}${x(t)} ${y(MunduPhysics.kickMultiplier(t))}`;
+  });
+  if(windowSeconds>denseEnd)curvePoints.push(`L224 ${y(MunduPhysics.kickMultiplier(windowSeconds))}`);
+  el('kick-reward-curve').setAttribute('d',curvePoints.join(' '));
+  el('kick-hint-guide').setAttribute('x1',hintX);el('kick-hint-guide').setAttribute('x2',hintX);
+  el('kick-hint-point').setAttribute('cx',hintX);el('kick-hint-point').setAttribute('cy',y(MunduPhysics.kickMultiplier(hintSeconds)));
   el('kick-indicator').setAttribute('cx',x(elapsed));el('kick-indicator').setAttribute('cy',y(multiplier));
   el('kick-one-second').setAttribute('x',x(1));el('kick-hint-time').setAttribute('x',hintX);
   el('kick-one-second').setAttribute('visibility',x(hintSeconds)-x(1)>=18?'visible':'hidden');
@@ -323,14 +321,14 @@ function render(dt) {
   if(gravityReadout)gravityReadout.textContent='EFFECTIVE GRAVITY '+(100*promptState.gravityMultiplier).toFixed(2)+'%';
   const hinted=promptState.hintVisible;
   el('target-hint').hidden=!hinted;
-  el('target-hint').textContent=hinted?'HINT → '+target.spanish+' / HALF KICK':'';
+  el('target-hint').textContent=hinted?'HINT → '+target.spanish:'';
   checkCompletion();
 }
 
 function updateReadouts() {
   el('count').textContent=String(count).padStart(3,'0');
   el('score').textContent=progressValue.toFixed(1);
-  el('feedback').textContent=lastMeasurement ? `${lastMeasurement.word} → ${lastMeasurement.translation} / ${lastMeasurement.kind==='retrieval'?(lastMeasurement.hintVisible?'hinted / half kick':'unhinted / '+lastMeasurement.multiplier.toFixed(2)+'× kick')+' / ↑'+lastMeasurement.lift.toFixed(1)+' pp':'skipped / no kick'}` : 'Ten words. One key. Keep them afloat.';
+  el('feedback').textContent=lastMeasurement ? `${lastMeasurement.word} → ${lastMeasurement.translation} / ${lastMeasurement.kind==='retrieval'?(lastMeasurement.hintVisible?'hinted':'unhinted')+' / '+lastMeasurement.multiplier.toFixed(2)+'× kick'+' / ↑'+lastMeasurement.lift.toFixed(1)+' pp':'skipped / no kick'}` : 'Ten words. One key. Keep them afloat.';
 }
 
 function updateStatus() {

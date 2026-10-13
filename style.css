@@ -119,9 +119,7 @@ button:disabled { opacity:0.4; cursor:default; }
 #kick-graph-svg text { fill:var(--muted); font-size:8px; }
 .kick-axes,.kick-guide { fill:none; stroke:var(--line); stroke-width:1; }
 .kick-guide { stroke-dasharray:2 4; }
-.kick-reward,.kick-drop { fill:none; stroke:var(--pink); stroke-width:1.5; }
-.kick-drop { stroke-dasharray:2 2; opacity:.6; }
-.kick-open { fill:var(--bg); stroke:var(--pink); stroke-width:1.2; }
+.kick-reward { fill:none; stroke:var(--pink); stroke-width:1.5; }
 .kick-filled { fill:var(--pink); }
 #kick-indicator { fill:var(--cyan); stroke:var(--bg); stroke-width:1; }
 @media(max-width:700px) { .kick-graph { width:200px; } }

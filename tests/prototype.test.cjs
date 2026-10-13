@@ -1,3 +1,4 @@
+const reward=t=>.5+1.5*Math.exp(-1.5*Math.max(0,t));
 const test=require('node:test');
 const assert=require('node:assert/strict');
 const fs=require('node:fs');
@@ -100,7 +101,7 @@ test('hint display, Escape skip, successful counters, and removal of mistakes',(
  h.advance(1.9);assert.equal(h.elements.get('target-hint').hidden,true);
  h.advance(.1);assert.equal(h.elements.get('target-hint').hidden,false);
  assert.ok(h.elements.get('target-hint').textContent.includes('río'));
- h.retrieve();assert.equal(h.run('lastMeasurement.multiplier'),.5);
+ h.retrieve();compare(h.run('lastMeasurement.multiplier'),reward(2));
  assert.equal(h.elements.get('target-hint').hidden,true);
  const count=h.run('count'),depth=h.run('words[0].depth');
  h.key('Backspace');assert.equal(h.run('count'),count);assert.equal(h.run('words[0].depth'),depth);
@@ -116,12 +117,12 @@ test('hint display, Escape skip, successful counters, and removal of mistakes',(
 
 test('prototype applies engine retrieval-time multipliers and reports the unaided bonus',()=>{
  const h=host();h.settings('kickHeightPercent',1,'MOTION');
- for(const [seconds,multiplier] of [[0,2],[.5,1.75],[1,1.5],[1.5,1.25],[2,.5],[10,.5]]){
+ for(const [seconds,multiplier] of [0,.5,1,1.5,2,3,4,10].map(t=>[t,reward(t)])){
   h.click('reset');h.advance(seconds);h.retrieve();
   compare(h.run('lastMeasurement.multiplier'),multiplier);
   compare(h.run('lastMeasurement.kickTime'),h.run('MunduPhysics.baselineKickTime(session.getState().config)')*multiplier);
   compare(h.run('MunduPhysics.timeCoordinate(words[0].depth,session.getState().config)'),h.run('lastMeasurement.kickTime'));
-  assert.ok(h.elements.get('feedback').textContent.includes(seconds<2?multiplier.toFixed(2)+'× kick':'half kick'));
+  assert.ok(h.elements.get('feedback').textContent.includes(multiplier.toFixed(2)+'× kick'));
  }
 });
 
@@ -153,18 +154,19 @@ test('Tune exposes reference kick height and keeps it unchanged on speed changes
 });
 
 
-test('kick graph follows the shared timer and actual hint state, including the discontinuity',()=>{
+test('kick graph follows the shared timer and actual hint state, continuously through the hint',()=>{
  const h=host();assert.equal(h.elements.get('kick-graph').hidden,false);
  compare(Number(h.elements.get('kick-indicator').attrs.cx),32);compare(Number(h.elements.get('kick-indicator').attrs.cy),12);
- h.advance(1);compare(Number(h.elements.get('kick-indicator').attrs.cx),80);compare(Number(h.elements.get('kick-indicator').attrs.cy),25);
- assert.equal(h.elements.get('kick-graph-value').textContent,'1.0s / 1.50×');
+ h.advance(1);compare(Number(h.elements.get('kick-indicator').attrs.cx),80);compare(Number(h.elements.get('kick-indicator').attrs.cy),64-26*reward(1));
+ assert.equal(h.elements.get('kick-graph-value').textContent,'1.0s / 0.83×');
  h.advance(.999);assert.equal(h.run('session.getState().hintVisible'),false);
- compare(Number(h.elements.get('kick-indicator').attrs.cy),64-26*1.0005);
+ compare(Number(h.elements.get('kick-indicator').attrs.cy),64-26*reward(1.999));
  h.advance(.001);assert.equal(h.run('session.getState().hintVisible'),true);
- compare(Number(h.elements.get('kick-indicator').attrs.cx),128);compare(Number(h.elements.get('kick-indicator').attrs.cy),51);
- compare(Number(h.elements.get('kick-reward-drop').attrs.y1),38);compare(Number(h.elements.get('kick-reward-drop').attrs.y2),51);
+ compare(Number(h.elements.get('kick-indicator').attrs.cx),128);compare(Number(h.elements.get('kick-indicator').attrs.cy),64-26*reward(h.run('session.getState().time-session.getState().selectedAt')));
+ assert.equal(h.elements.has('kick-reward-drop'),false);
+ compare(Number(h.elements.get('kick-hint-point').attrs.cy),64-26*reward(2));
  h.advance(58);assert.equal(h.elements.get('kick-graph-value').textContent,'60.0s / 0.50×');
- compare(Number(h.elements.get('kick-indicator').attrs.cx),224);compare(Number(h.elements.get('kick-indicator').attrs.cy),51);
+ compare(Number(h.elements.get('kick-indicator').attrs.cx),224);compare(Number(h.elements.get('kick-indicator').attrs.cy),64-26*reward(h.run('session.getState().time-session.getState().selectedAt')));
  assert.equal(h.elements.get('kick-axis-end').textContent,'60.0s');
  assert.ok(!/NaN|undefined/.test(h.elements.get('kick-reward-curve').attrs.d));
 });
@@ -174,7 +176,7 @@ test('kick graph freezes on Pause and resumes the hint timer without counting pa
  const before=JSON.stringify(h.elements.get('kick-indicator').attrs),readout=h.elements.get('kick-graph-value').textContent;
  h.advance(20);assert.equal(JSON.stringify(h.elements.get('kick-indicator').attrs),before);assert.equal(h.elements.get('kick-graph-value').textContent,readout);
  assert.equal(h.elements.get('kick-graph').hidden,false);
- h.click('pause');h.advance(.9);assert.equal(h.elements.get('kick-graph-value').textContent,'2.0s / 0.50×');
+ h.click('pause');h.advance(.9);assert.equal(h.elements.get('kick-graph-value').textContent,'2.0s / 0.57×');
 });
 
 test('ended prompt graph hides on retrieval/skip, resets for the next prompt, and hides on completion',()=>{
@@ -201,4 +203,18 @@ test('Tune effective gravity updates on unlocking, parameter edits and Reset',()
  h.settings('gravityReductionPercent',10.1,'MOTION');assert.equal(h.run('session.getState().config.motion.gravityReductionPercent'),0);
  h.click('tuning-defaults');assert.equal(h.elements.get('effective-gravity').textContent,'EFFECTIVE GRAVITY 95.00%');
  h.click('reset');assert.equal(h.elements.get('effective-gravity').textContent,'EFFECTIVE GRAVITY 100.00%');
+});
+
+
+test('every reward-curve vertex and live indicator uses the same exponential function as gameplay',()=>{
+ const h=host();h.advance(3);
+ const path=h.elements.get('kick-reward-curve').attrs.d;assert.equal((path.match(/M/g)||[]).length,1);
+ for(const match of path.matchAll(/[ML]([\d.e+-]+) ([\d.e+-]+)/g)){
+  const t=(Number(match[1])-32)*4/192;compare(Number(match[2]),64-26*reward(t));
+ }
+ compare(Number(h.elements.get('kick-indicator').attrs.cy),64-26*reward(3));
+ assert.equal(h.elements.get('kick-hint-time').textContent,'2s');
+ assert.equal(h.elements.get('target-hint').hidden,false);assert.ok(!h.elements.get('target-hint').textContent.includes('HALF KICK'));
+ h.retrieve();compare(h.run('lastMeasurement.multiplier'),reward(3));
+ assert.ok(h.elements.get('feedback').textContent.includes('hinted / '+reward(3).toFixed(2)+'× kick'));
 });
