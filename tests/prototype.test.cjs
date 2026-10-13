@@ -301,3 +301,54 @@ for(const size of [10,20,30])test(`vertical word labels stay centered and follow
  }
  assert.ok(files.html.includes('viewBox="0 0 1270 560"'));
 });
+
+function defaultsStorage(initial=null){
+ const data=new Map(initial===null?[]:[['mundu.tuningDefaults',initial]]);
+ return {getItem:key=>data.get(key)??null,setItem:(key,value)=>data.set(key,value),removeItem:key=>data.delete(key)};
+}
+test('saved numeric tuning defaults reload without persisting unsaved edits or session state',()=>{
+ const storage=defaultsStorage(),h=host({storage});
+ for(const [key,value,group] of [['totalWords',30,'DATASET'],['threshold',40,'UNLOCK'],['topFallingSpeed',2,'MOTION'],['bottomToTopMultiplier',3,'MOTION'],['kickHeightPercent',35,'MOTION'],['gravityReductionPercent',2,'MOTION'],['threshold',95,'FINISH']])h.settings(key,value,group);
+ assert.equal(h.run('words.length'),10);
+ assert.equal(storage.getItem('mundu.tuningDefaults'),null);
+ h.click('tuning-save');const saved=storage.getItem('mundu.tuningDefaults');
+ assert.equal(Object.values(JSON.parse(saved)).flatMap(Object.values).length,7);
+ h.settings('totalWords',20,'DATASET');h.settings('kickHeightPercent',50,'MOTION');
+ assert.equal(storage.getItem('mundu.tuningDefaults'),saved);
+ const reopened=host({storage});assert.equal(reopened.run('words.length'),30);
+ assert.equal(reopened.run('words.filter(w=>w.unlocked).length'),1);
+ assert.equal(reopened.run('count'),0);assert.equal(reopened.run('activeTime'),0);
+ assert.deepEqual(JSON.parse(reopened.run('JSON.stringify(MOTION)')),{topFallingSpeed:2,kickHeightPercent:35,bottomToTopMultiplier:3,gravityReductionPercent:2});
+ assert.equal(reopened.run('UNLOCK.threshold'),40);assert.equal(reopened.run('FINISH.threshold'),95);
+ assert.equal(reopened.run("tuningInputs.find(v=>v.key==='totalWords').input.value"),'30');
+ reopened.click('tuning-defaults');assert.equal(storage.getItem('mundu.tuningDefaults'),null);
+ assert.equal(reopened.run('DATASET.totalWords'),10);assert.equal(reopened.run('words.length'),30);
+ assert.equal(reopened.run('MOTION.kickHeightPercent'),25);
+ assert.equal(reopened.run('UNLOCK.threshold'),50);assert.equal(reopened.run('FINISH.threshold'),90);
+ reopened.click('reset');assert.equal(reopened.run('words.length'),10);
+ assert.equal(host({storage}).run('MOTION.kickHeightPercent'),25);
+});
+test('invalid, partial and outdated saved defaults fall back atomically to factory values',()=>{
+ const storage=defaultsStorage(),h=host({storage});h.click('tuning-save');
+ const valid=JSON.parse(storage.getItem('mundu.tuningDefaults'));
+ const invalid=['bad JSON','null','[]','{}'];
+ for(const [group,key,value] of [['VOCABULARY SET','totalWords',0],['VOCABULARY SET','totalWords',31],['VOCABULARY SET','totalWords',1.5],['SHARED LINEAR PHYSICS','topFallingSpeed',16],['SHARED LINEAR PHYSICS','bottomToTopMultiplier',0],['SHARED LINEAR PHYSICS','kickHeightPercent','25'],['SHARED LINEAR PHYSICS','gravityReductionPercent',11],['PROGRESSIVE WORDS','threshold',96],['COMPLETION LINE','threshold',50]]){
+  const saved=JSON.parse(JSON.stringify(valid));saved[group][key]=value;invalid.push(JSON.stringify(saved));
+ }
+ const outdated=JSON.parse(JSON.stringify(valid));delete outdated['VOCABULARY SET'];invalid.push(JSON.stringify(outdated));
+ for(const saved of invalid){
+  const reopened=host({storage:defaultsStorage(saved)});
+  assert.equal(reopened.run('words.length'),10);assert.equal(reopened.run('MOTION.kickHeightPercent'),25);
+  assert.equal(reopened.run('UNLOCK.threshold'),50);assert.equal(reopened.run('FINISH.threshold'),90);
+ }
+});
+test('unavailable storage never breaks startup, saving, restoration or gameplay',()=>{
+ const storage={getItem(){throw Error('denied');},setItem(){throw Error('quota');},removeItem(){throw Error('denied');}};
+ const h=host({storage});assert.equal(h.run('words.length'),10);
+ h.settings('kickHeightPercent',35,'MOTION');h.click('tuning-save');
+ assert.equal(h.elements.get('tuning-save').textContent,'SAVE UNAVAILABLE');
+ h.click('tuning-defaults');assert.equal(h.run('MOTION.kickHeightPercent'),25);
+ h.retrieve();h.advance(.1);assert.equal(h.run('count'),1);assert.ok(h.run('words[0].shown')>0);
+ const missing=host({storage:null});missing.click('tuning-save');missing.click('tuning-defaults');missing.retrieve();
+ assert.equal(missing.run('count'),1);
+});

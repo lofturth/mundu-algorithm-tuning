@@ -15,7 +15,7 @@ class Element {
   showModal(){this.open=true;}
   close(){this.open=false;}
 }
-function makeHost({html,app,physics,instantPosition=false}){
+function makeHost({html,app,physics,instantPosition=false,storage={getItem(){return null;},setItem(){},removeItem(){}}}){
   const elements=new Map();
   const create=()=>{const node=new Element();node.register=(id,value)=>elements.set(id,value);return node;};
   for(const match of html.matchAll(/id="([^"]+)"/g))elements.set(match[1],create());
@@ -29,7 +29,7 @@ function makeHost({html,app,physics,instantPosition=false}){
   let now=0;
   const preference={matches:instantPosition,addEventListener(){}};
   const states=new WeakMap();
-  const context=vm.createContext({__testStates:states,testState:session=>states.get(session),document,performance:{now:()=>now},matchMedia:()=>preference,requestAnimationFrame(){}});
+  const context=vm.createContext({__testStates:states,testState:session=>states.get(session),document,localStorage:storage,performance:{now:()=>now},matchMedia:()=>preference,requestAnimationFrame(){}});
   if(physics)vm.runInContext(instrumentPhysics(physics),context,{filename:'physics.js'});
   vm.runInContext(app,context,{filename:'app.js'});
   const run=source=>vm.runInContext(source,context);

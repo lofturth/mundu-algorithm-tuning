@@ -294,7 +294,7 @@ function frame(time) {
   advanceTo(time);
   requestAnimationFrame(frame);
 }
-// Live tuning stays separate from session state. Reload restores these defaults.
+// Live tuning stays separate from session state; saving is explicit.
 const SETTINGS = [
   {name:'VOCABULARY SET',values:DATASET,fields:[
     ['totalWords','Total words','Applied on the next session Reset',1,VOCABULARY.length,1]]},
@@ -308,6 +308,22 @@ const SETTINGS = [
   {name:'COMPLETION LINE',values:FINISH,fields:[
     ['threshold','Completion position (%)','Higher percentage = higher / harder to reach',25200/442,44100/442,0.1]]}
 ];
+const DEFAULTS_STORAGE_KEY='mundu.tuningDefaults';
+const factoryDefaults=SETTINGS.map(group=>({...group.values}));
+function validTuningValue(value,min,max,step) {
+  return Number.isFinite(value) && value>=min && value<=max && (step!==1 || Number.isInteger(value));
+}
+function loadTuningDefaults() {
+  try {
+    const saved=JSON.parse(localStorage.getItem(DEFAULTS_STORAGE_KEY));
+    if(!saved || typeof saved!=='object' || Array.isArray(saved))return;
+    for(const group of SETTINGS)for(const [key,,,min,max,step] of group.fields){
+      if(!validTuningValue(saved[group.name]?.[key],min,max,step))return;
+    }
+    if(saved['PROGRESSIVE WORDS'].threshold>=saved['COMPLETION LINE'].threshold)return;
+    for(const group of SETTINGS)for(const [key] of group.fields)group.values[key]=saved[group.name][key];
+  } catch { /* Missing or inaccessible storage leaves factory values intact. */ }
+}
 const tuningInputs=[];
 function refreshTuning(recheckCompletion=false) {
   el('unlock-line').setAttribute('y1',screenY(UNLOCK.threshold));
@@ -325,7 +341,7 @@ function setTuningOpen(open) {
   el('tune').setAttribute('aria-expanded',String(open));
 }
 function buildTuning() {
-  for (const group of SETTINGS) {
+  for (const [groupIndex,group] of SETTINGS.entries()) {
     const fieldset=document.createElement('fieldset');
     const legend=document.createElement('legend'); legend.textContent=group.name;
     fieldset.appendChild(legend);
@@ -343,10 +359,10 @@ function buildTuning() {
       const input=document.createElement('input');
       input.type='number'; input.min=min; input.max=max; input.step=step;
       input.value=Number(group.values[key].toFixed(6)); input.title=key;
-      const original=group.values[key];
+      const original=factoryDefaults[groupIndex][key];
       const commit=() => {
         const value=Number(input.value);
-        if (input.value.trim()==='' || !Number.isFinite(value) || value<min || value>max || (step===1 && !Number.isInteger(value))) return false;
+        if (input.value.trim()==='' || !validTuningValue(value,min,max,step)) return false;
         if (key==='threshold' && ((group.values===UNLOCK && value>=FINISH.threshold) || (group.values===FINISH && value<=UNLOCK.threshold))) return false;
         if (!paused) advanceTo(performance.now());
         group.values[key]=value;
@@ -362,8 +378,20 @@ function buildTuning() {
   }
   el('tune').addEventListener('click',() => setTuningOpen(el('tuning-panel').hidden));
   el('tuning-close').addEventListener('click',() => { setTuningOpen(false); el('tune').focus(); });
+  el('tuning-save').addEventListener('click',() => {
+    const saved=Object.fromEntries(SETTINGS.map(group=>[group.name,
+      Object.fromEntries(group.fields.map(([key])=>[key,group.values[key]]))]));
+    try {
+      localStorage.setItem(DEFAULTS_STORAGE_KEY,JSON.stringify(saved));
+      el('tuning-save').textContent='DEFAULTS SAVED ✓';
+    } catch { el('tuning-save').textContent='SAVE UNAVAILABLE'; }
+  });
   el('tuning-defaults').addEventListener('click',() => {
     for (const {input,values,key,original} of tuningInputs) { values[key]=original; input.value=Number(values[key].toFixed(6)); }
+    try {
+      localStorage.removeItem(DEFAULTS_STORAGE_KEY);
+      el('tuning-save').textContent='SAVE AS DEFAULTS';
+    } catch { el('tuning-save').textContent='STORAGE UNAVAILABLE'; }
     refreshTuning(true);
   });
 }
@@ -373,4 +401,4 @@ function buildCompletionScreen() {
     el('completion-screen').close(); el('reset').focus();
   });
 }
-reset(); buildTuning(); buildCompletionScreen(); requestAnimationFrame(frame);
+loadTuningDefaults(); reset(); buildTuning(); buildCompletionScreen(); requestAnimationFrame(frame);
