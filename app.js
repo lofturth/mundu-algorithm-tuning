@@ -14,7 +14,7 @@ const FINISH = { ...MunduPhysics.DEFAULTS.finish };
 const DATASET = { totalWords:10 };
 const UNLOCK = { ...MunduPhysics.DEFAULTS.unlock };
 let sessionComplete=false, completionPresented=false;
-let session, selectedIndex=0, pendingUnlock=false;
+let session, sessionState, selectedIndex=0, pendingUnlock=false;
 let wordFlashes=[];
 let kickGraphEnded=false;
 let gravityReadout;
@@ -36,6 +36,31 @@ let lastTime=null, lastMeasurement=null;
 let activeTime=0, nextSampleTime=PROGRESS.sampleSeconds;
 let observationTimes=[];
 const nodes=[];
+let animationFrame=null;
+let historyPath='', historyLength=0;
+// Attribute writes can invalidate SVG paint even when the value is unchanged.
+const renderedAttributes=new WeakMap();
+function setAttribute(node,key,value) {
+  let values=renderedAttributes.get(node);
+  if (!values) { values=new Map(); renderedAttributes.set(node,values); }
+  const text=String(value);
+  if (values.get(key)!==text) { node.setAttribute(key,text); values.set(key,text); }
+}
+function setText(node,value) {
+  const text=String(value);
+  if (node.textContent!==text) node.textContent=text;
+}
+function toggleClass(node,key,value) {
+  if (node.classList.contains(key)!==value) node.classList.toggle(key,value);
+}
+function scheduleFrame() {
+  if (animationFrame===null && !paused && !sessionComplete && !document.hidden)
+    animationFrame=requestAnimationFrame(frame);
+}
+function stopFrames() {
+  if (animationFrame!==null) cancelAnimationFrame(animationFrame);
+  animationFrame=null;
+}
 
 function svgNode(type, attributes, parent) {
   const node=document.createElementNS(NS,type);
@@ -50,7 +75,7 @@ function physicsConfig() {
     instantPosition:motionPreference.matches};
 }
 function syncSession() {
-  const state=session.getState();
+  const state=sessionState=session.getState();
   words=state.words.map((word,i)=>({...word,flash:wordFlashes[i] || 0}));
   activeTime=state.time; paused=state.paused; sessionComplete=state.complete;
   count=state.retrievalCount; selectedIndex=state.selectedIndex;
@@ -65,10 +90,11 @@ function reset() {
   wordFlashes=Array.from({length:DATASET.totalWords},()=>0); pendingUnlock=false; completionPresented=false;
   kickGraphEnded=false;
   observations=[0]; observationTimes=[0]; nextSampleTime=PROGRESS.sampleSeconds;
+  historyPath=''; historyLength=0;
   progressValue=0; lastMeasurement=null;
   syncSession();
   buildSvg();
-  lastTime=performance.now(); updateStatus(); render(0); updateReadouts();
+  lastTime=performance.now(); updateStatus(); render(0); updateReadouts(); scheduleFrame();
 }
 
 // Retrieval changes only word state; progress observes the resulting movement.
@@ -108,7 +134,7 @@ function checkCompletion() {
   if (!sessionComplete || completionPresented) return;
   completionPresented=true;
   progressValue=overallProgress(); recordObservation();
-  paused=true; updateStatus();
+  paused=true; stopFrames(); updateStatus();
   const seconds=Math.floor(activeTime);
   el('completion-time').textContent=String(Math.floor(seconds/60)).padStart(2,'0')+':'+String(seconds%60).padStart(2,'0');
   el('completion-count').textContent=String(count);
@@ -124,7 +150,14 @@ function plottedHistory() {
   return points;
 }
 
+function updateTraceStroke() {
+  // non-scaling-stroke cancels the chart's viewBox scale too. Restore that
+  // scale on resize so line weight stays identical to the original chart.
+  const scale=el('chart').getScreenCTM?.()?.a || 1;
+  for (const id of ['trace','trace-live']) setAttribute(el(id),'stroke-width',2.3*scale);
+}
 function buildSvg() {
+  updateTraceStroke();
   for (const id of ['grid','bars','labels']) el(id).replaceChildren();
   nodes.length=0;
   svgNode('line',{id:'unlock-line',x1:TUNE.left,y1:screenY(UNLOCK.threshold),x2:TUNE.right,y2:screenY(UNLOCK.threshold),
@@ -166,8 +199,9 @@ function wordAboveFinish(word) {
 function renderKickGraph(state,dt) {
   if(dt>0)kickGraphEnded=false;
   const graph=el('kick-graph');
-  graph.hidden=state.complete || state.selectedIndex<0 || kickGraphEnded;
-  graph.setAttribute('aria-hidden',String(graph.hidden));
+  const hidden=state.complete || state.selectedIndex<0 || kickGraphEnded;
+  if (graph.hidden!==hidden) graph.hidden=hidden;
+  setAttribute(graph,'aria-hidden',String(graph.hidden));
   if(state.complete || state.selectedIndex<0)return;
   const elapsed=Math.max(0,state.time-state.selectedAt);
   const hintSeconds=MunduPhysics.RETRIEVAL.hintSeconds;
@@ -175,22 +209,27 @@ function renderKickGraph(state,dt) {
   const x=t=>32+192*t/windowSeconds;
   const y=m=>64-52*m/MunduPhysics.kickMultiplier(0);
   const multiplier=MunduPhysics.kickMultiplier(elapsed);
-  const hintX=x(hintSeconds),denseEnd=Math.min(windowSeconds,8);
-  const curvePoints=Array.from({length:97},(_,i)=>{
-    const t=denseEnd*i/96;
-    return `${i===0?'M':'L'}${x(t)} ${y(MunduPhysics.kickMultiplier(t))}`;
-  });
-  if(windowSeconds>denseEnd)curvePoints.push(`L224 ${y(MunduPhysics.kickMultiplier(windowSeconds))}`);
-  el('kick-reward-curve').setAttribute('d',curvePoints.join(' '));
-  el('kick-hint-guide').setAttribute('x1',hintX);el('kick-hint-guide').setAttribute('x2',hintX);
-  el('kick-hint-point').setAttribute('cx',hintX);el('kick-hint-point').setAttribute('cy',y(MunduPhysics.kickMultiplier(hintSeconds)));
-  el('kick-indicator').setAttribute('cx',x(elapsed));el('kick-indicator').setAttribute('cy',y(multiplier));
-  el('kick-one-second').setAttribute('x',x(1));el('kick-hint-time').setAttribute('x',hintX);
-  el('kick-one-second').setAttribute('visibility',x(hintSeconds)-x(1)>=18?'visible':'hidden');
-  el('kick-hint-time').setAttribute('visibility',hintX-x(0)>=24?'visible':'hidden');
-  el('kick-hint-time').textContent=hintSeconds+'s';el('kick-axis-end').textContent=windowSeconds.toFixed(1)+'s';
-  el('kick-graph-value').textContent=elapsed.toFixed(1)+'s / '+multiplier.toFixed(2)+'×';
-  el('kick-graph-svg').setAttribute('aria-label',`Possible kick: ${multiplier.toFixed(2)} times at ${elapsed.toFixed(1)} seconds; hint at ${hintSeconds} seconds`);
+  const hintX=x(hintSeconds);
+  const curve=el('kick-reward-curve');
+  if (curve.windowSeconds!==windowSeconds) {
+    curve.windowSeconds=windowSeconds;
+    const denseEnd=Math.min(windowSeconds,8);
+    const curvePoints=Array.from({length:97},(_,i)=>{
+      const t=denseEnd*i/96;
+      return `${i===0?'M':'L'}${x(t)} ${y(MunduPhysics.kickMultiplier(t))}`;
+    });
+    if(windowSeconds>denseEnd)curvePoints.push(`L224 ${y(MunduPhysics.kickMultiplier(windowSeconds))}`);
+    setAttribute(curve,'d',curvePoints.join(' '));
+  }
+  setAttribute(el('kick-hint-guide'),'x1',hintX);setAttribute(el('kick-hint-guide'),'x2',hintX);
+  setAttribute(el('kick-hint-point'),'cx',hintX);setAttribute(el('kick-hint-point'),'cy',y(MunduPhysics.kickMultiplier(hintSeconds)));
+  setAttribute(el('kick-indicator'),'cx',x(elapsed));setAttribute(el('kick-indicator'),'cy',y(multiplier));
+  setAttribute(el('kick-one-second'),'x',x(1));setAttribute(el('kick-hint-time'),'x',hintX);
+  setAttribute(el('kick-one-second'),'visibility',x(hintSeconds)-x(1)>=18?'visible':'hidden');
+  setAttribute(el('kick-hint-time'),'visibility',hintX-x(0)>=24?'visible':'hidden');
+  setText(el('kick-hint-time'),hintSeconds+'s');setText(el('kick-axis-end'),windowSeconds.toFixed(1)+'s');
+  setText(el('kick-graph-value'),elapsed.toFixed(1)+'s / '+multiplier.toFixed(2)+'×');
+  setAttribute(el('kick-graph-svg'),'aria-label',`Possible kick: ${multiplier.toFixed(2)} times at ${elapsed.toFixed(1)} seconds; hint at ${hintSeconds} seconds`);
 }
 
 function render(dt) {
@@ -199,48 +238,58 @@ function render(dt) {
     const node=nodes[i];
     const {bar,edge,label,streak,guide,index}=node, y=screenY(word.shown);
     for (const element of [bar,edge,label,streak,guide,index]) {
-      element.setAttribute('visibility',word.unlocked?'visible':'hidden');
+      setAttribute(element,'visibility',word.unlocked?'visible':'hidden');
     }
     const above=wordAboveFinish(word);
     if (node.aboveFinish===true && !above) node.reactivation=0.28;
     else node.reactivation=Math.max(0,(node.reactivation || 0)-dt);
     node.aboveFinish=above;
     for (const element of [bar,edge,label,streak]) {
-      element.classList.toggle('word-faded',above);
-      element.classList.toggle('word-reactivated',!above && node.reactivation>0);
+      toggleClass(element,'word-faded',above);
+      toggleClass(element,'word-reactivated',!above && node.reactivation>0);
     }
-    bar.setAttribute('height',y-TUNE.top);
-    edge.setAttribute('y1',y); edge.setAttribute('y2',y);
-    edge.setAttribute('stroke-width',1.3+word.flash*1.5);
-    label.setAttribute('transform',`translate(${TUNE.left+(i+0.5)*(TUNE.right-TUNE.left)/words.length},${y-8}) rotate(-90)`);
-    label.setAttribute('fill',word.flash>0.2 || node.reactivation>0?COLOR.pink:'#e3e8ef');
-    streak.setAttribute('y',y+16); streak.textContent=Math.round(Math.min(word.depth,word.shown))+'%';
-    streak.setAttribute('font-size',15);
-    streak.setAttribute('font-weight',700);
-    streak.setAttribute('fill',COLOR.pink);
-    streak.setAttribute('stroke','#0A0D19');
-    streak.setAttribute('stroke-width',4);
-    streak.setAttribute('paint-order','stroke');
+    setAttribute(bar,'height',y-TUNE.top);
+    setAttribute(edge,'y1',y); setAttribute(edge,'y2',y);
+    setAttribute(edge,'stroke-width',1.3+word.flash*1.5);
+    setAttribute(label,'transform',`translate(${TUNE.left+(i+0.5)*(TUNE.right-TUNE.left)/words.length},${y-8}) rotate(-90)`);
+    setAttribute(label,'fill',word.flash>0.2 || node.reactivation>0?COLOR.pink:'#e3e8ef');
+    setAttribute(streak,'y',y+16); setText(streak,Math.round(Math.min(word.depth,word.shown))+'%');
+    setAttribute(streak,'font-size',15);
+    setAttribute(streak,'font-weight',700);
+    setAttribute(streak,'fill',COLOR.pink);
+    setAttribute(streak,'stroke','#0A0D19');
+    setAttribute(streak,'stroke-width',4);
+    setAttribute(streak,'paint-order','stroke');
   });
   progressValue=overallProgress();
   if (unlocked) recordObservation();
-  el('score').textContent=progressValue.toFixed(1);
-  const points=plottedHistory().map(([time,value]) => [
-    TUNE.left+(activeTime>0?time/activeTime:0)*(TUNE.right-TUNE.left),
-    TUNE.bottom-TUNE.traceMargin-value/100*(TUNE.bottom-TUNE.top-2*TUNE.traceMargin)]);
-  el('trace').setAttribute('d',points.map(([x,y],i)=>(i?'L':'M')+x.toFixed(2)+','+y.toFixed(2)).join(' '));
-  const head=points[points.length-1];
-  el('trace-percentage').setAttribute('x',TUNE.right+TRACE_LABEL.gap);
-  el('trace-percentage').setAttribute('y',head[1]);
-  el('trace-percentage').textContent=progressValue.toFixed(1)+'%';
-  const target=words[selectedIndex]; el('target-word').textContent=target.english;
-  el('target-streak').textContent='STREAK '+String(target.streak).padStart(2,'0');
-  const promptState=session.getState();
+  setText(el('score'),progressValue.toFixed(1));
+  // Keep sample times in seconds. SVG scales the existing path instead of JS
+  // allocating/reformatting the entire history on every display frame.
+  const traceY=value=>TUNE.bottom-TUNE.traceMargin-value/100*(TUNE.bottom-TUNE.top-2*TUNE.traceMargin);
+  while (historyLength<observations.length) {
+    const i=historyLength++;
+    historyPath+=(i?' L':'M')+observationTimes[i]+','+traceY(observations[i]).toFixed(2);
+  }
+  setAttribute(el('trace'),'d',historyPath);
+  const transform=`translate(${TUNE.left} 0) scale(${activeTime>0?(TUNE.right-TUNE.left)/activeTime:1} 1)`;
+  for (const id of ['trace','trace-live']) {
+    setAttribute(el(id),'transform',transform);
+    setAttribute(el(id),'vector-effect','non-scaling-stroke');
+  }
+  const last=observations.length-1, headY=traceY(progressValue);
+  setAttribute(el('trace-live'),'d',`M${observationTimes[last]},${traceY(observations[last]).toFixed(2)} L${activeTime},${headY.toFixed(2)}`);
+  setAttribute(el('trace-percentage'),'x',TUNE.right+TRACE_LABEL.gap);
+  setAttribute(el('trace-percentage'),'y',headY);
+  setText(el('trace-percentage'),progressValue.toFixed(1)+'%');
+  const target=words[selectedIndex]; setText(el('target-word'),target.english);
+  setText(el('target-streak'),'STREAK '+String(target.streak).padStart(2,'0'));
+  const promptState=sessionState;
   renderKickGraph(promptState,dt);
-  if(gravityReadout)gravityReadout.textContent='EFFECTIVE GRAVITY '+(100*promptState.gravityMultiplier).toFixed(2)+'%';
+  if(gravityReadout)setText(gravityReadout,'EFFECTIVE GRAVITY '+(100*promptState.gravityMultiplier).toFixed(2)+'%');
   const hinted=promptState.hintVisible;
-  el('target-hint').hidden=!hinted;
-  el('target-hint').textContent=hinted?'HINT → '+target.spanish:'';
+  if (el('target-hint').hidden===hinted) el('target-hint').hidden=!hinted;
+  setText(el('target-hint'),hinted?'HINT → '+target.spanish:'');
   checkCompletion();
 }
 
@@ -275,24 +324,31 @@ el('pause').addEventListener('click',() => {
   if (sessionComplete) return;
   if (!paused) { advanceTo(performance.now()); render(0); }
   session.setPaused(!paused); syncSession(); lastTime=performance.now(); updateStatus();
+  if (paused) stopFrames(); else scheduleFrame();
 });
 el('reset').addEventListener('click',reset);
 motionPreference.addEventListener?.('change',() => {
   acceptTransition(session.configure({instantPosition:motionPreference.matches}));
+  render(0); scheduleFrame();
 });
-document.addEventListener('visibilitychange',() => { lastTime=performance.now(); });
+document.addEventListener('visibilitychange',() => {
+  // Hidden time was already excluded; explicitly suspend work as well.
+  lastTime=performance.now();
+  if (document.hidden) stopFrames(); else scheduleFrame();
+});
 function advanceTo(time) {
   const nextTime=lastTime===null?time:Math.max(time,lastTime);
   const dt=lastTime===null?0:(nextTime-lastTime)/1000; lastTime=nextTime;
-  if (!paused) {
+  if (!paused && !sessionComplete && !document.hidden) {
     wordFlashes=wordFlashes.map(flash=>Math.max(0,flash-dt*2.8));
     acceptTransition(session.advance(dt));
     advanceProgress(); render(dt);
   }
 }
 function frame(time) {
+  animationFrame=null;
   advanceTo(time);
-  requestAnimationFrame(frame);
+  scheduleFrame();
 }
 // Live tuning stays separate from session state; saving is explicit.
 const SETTINGS = [
@@ -334,7 +390,7 @@ function refreshTuning(recheckCompletion=false) {
   el('completion-label').setAttribute('y',screenY(FINISH.threshold)-7);
   if (recheckCompletion) completionPresented=false;
   acceptTransition(session.configure(physicsConfig(),{recheckCompletion}));
-  updateStatus(); render(0);
+  updateStatus(); render(0); scheduleFrame();
 }
 function setTuningOpen(open) {
   el('tuning-panel').hidden=!open;
@@ -401,4 +457,5 @@ function buildCompletionScreen() {
     el('completion-screen').close(); el('reset').focus();
   });
 }
-loadTuningDefaults(); reset(); buildTuning(); buildCompletionScreen(); requestAnimationFrame(frame);
+loadTuningDefaults(); reset(); buildTuning(); buildCompletionScreen(); scheduleFrame();
+if (typeof ResizeObserver!=='undefined') new ResizeObserver(updateTraceStroke).observe(el('chart'));

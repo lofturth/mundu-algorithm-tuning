@@ -73,7 +73,7 @@ test('progress keeps every raw history sample, live endpoint and percentages',()
  const recorded=JSON.parse(h.run('JSON.stringify(observations.map((value,i)=>[observationTimes[i],value]))'));
  assert.deepEqual(points.slice(0,-1),recorded);
  assert.deepEqual(points.at(-1),[600,h.run('progressValue')]);
- assert.equal(h.elements.get('trace').attrs.d.split(' ').length,points.length);
+ assert.equal(h.elements.get('trace').attrs.d.split(' ').length,points.length-1);
  assert.equal(h.run('JSON.stringify([observations,observationTimes])'),original);
  assert.equal(h.elements.get('trace-percentage').textContent,h.run("progressValue.toFixed(1)+'%'"));
  assert.ok(h.run('nodes[0].streak.textContent.endsWith("%")'));
@@ -82,13 +82,18 @@ test('progress keeps every raw history sample, live endpoint and percentages',()
 });
 test('raw history renders straight segments at recorded times, including simultaneous jumps',()=>{
  const h=host();h.advance(10);
- h.run('observations=[0,70,20,80,30];observationTimes=[0,1,1,4,9];render(0)');
+ h.run("observations=[0,70,20,80,30];observationTimes=[0,1,1,4,9];historyPath='';historyLength=0;render(0)");
  const value=h.run('progressValue');
  const samples=[[0,0],[1,70],[1,20],[4,80],[9,30],[10,value]];
  assert.deepEqual(JSON.parse(h.run('JSON.stringify(plottedHistory())')),samples);
- const expected=samples.map(([time,progress],i)=>
-   (i?'L':'M')+(20+time/10*1160).toFixed(2)+','+(498-progress/100*470).toFixed(2)).join(' ');
+ const expected=samples.slice(0,-1).map(([time,progress],i)=>
+   (i?'L':'M')+time+','+(498-progress/100*470).toFixed(2)).join(' ');
  assert.equal(h.elements.get('trace').attrs.d,expected);
+ assert.equal(h.elements.get('trace-live').attrs.d,`M9,357.00 L10,${(498-value/100*470).toFixed(2)}`);
+ for(const id of ['trace','trace-live']){
+   assert.equal(h.elements.get(id).attrs.transform,'translate(20 0) scale(116 1)');
+   assert.equal(h.elements.get(id).attrs['vector-effect'],'non-scaling-stroke');
+ }
  assert.equal(h.run("tuningInputs.some(v=>['rawSeconds','settleSeconds','maxWindowSeconds','maxBlend'].includes(v.key))"),false);
  h.click('reset');
  assert.deepEqual(JSON.parse(h.run('JSON.stringify(plottedHistory())')),[[0,0],[0,0]]);
@@ -111,7 +116,7 @@ test('completion ghosting, modal stats, review and replay remain functional',()=
 test('normalized positions render at the unchanged SVG coordinates and Tune uses percentages',()=>{
  const h=host();
  assert.equal(h.run('words[0].depth'),0);
- assert.equal(h.run('nodes[0].edge.attrs.y1'),502);
+ assert.equal(Number(h.run('nodes[0].edge.attrs.y1')),502);
  compare(Number(h.elements.get('unlock-line').attrs.y1),281);
  compare(Number(h.elements.get('completion-line').attrs.y1),104.2);
  compare(h.run('screenY(100)'),60);
@@ -296,7 +301,7 @@ for(const size of [10,20,30])test(`vertical word labels stay centered and follow
    assert.equal(n.label['text-anchor'],'start');
    assert.equal(n.label['dominant-baseline'],'central');
    assert.equal(n.label['font-size'],14);assert.equal(n.percentage.transform,undefined);
-   assert.equal(n.percentage.y,y+16);assert.equal(n.index.y,540);
+   assert.equal(Number(n.percentage.y),y+16);assert.equal(n.index.y,540);
   });
  }
  assert.ok(files.html.includes('viewBox="0 0 1270 560"'));
@@ -351,4 +356,80 @@ test('unavailable storage never breaks startup, saving, restoration or gameplay'
  h.retrieve();h.advance(.1);assert.equal(h.run('count'),1);assert.ok(h.run('words[0].shown')>0);
  const missing=host({storage:null});missing.click('tuning-save');missing.click('tuning-defaults');missing.retrieve();
  assert.equal(missing.run('count'),1);
+});
+
+test('animation scheduling stops on pause and resumes once without counting paused time',()=>{
+ const h=host();assert.equal(h.pendingFrames(),1);
+ h.tick(.1);assert.equal(h.pendingFrames(),1);h.retrieve();
+ h.click('pause');assert.equal(h.pendingFrames(),0);
+ const saved=h.run('JSON.stringify(session.getState())');
+ h.tick(60);assert.equal(h.run('JSON.stringify(session.getState())'),saved);
+ h.click('pause');assert.equal(h.pendingFrames(),1);
+ h.tick(.1);compare(h.run('activeTime'),.2);assert.equal(h.pendingFrames(),1);
+ h.click('reset');h.click('reset');assert.equal(h.pendingFrames(),1);
+ h.tick(.1);compare(h.run('activeTime'),.1);
+});
+
+test('hidden tabs stop all frames and exclude hidden time on return, including reset and pause',()=>{
+ const h=host();h.tick(.1);h.retrieve();
+ h.visibility(true);assert.equal(h.pendingFrames(),0);
+ const saved=h.run('JSON.stringify(session.getState())');
+ h.tick(120);assert.equal(h.run('JSON.stringify(session.getState())'),saved);
+ h.visibility(false);h.visibility(false);assert.equal(h.pendingFrames(),1);
+ h.tick(.1);compare(h.run('activeTime'),.2);
+ h.click('pause');h.visibility(true);h.tick(120);h.visibility(false);
+ assert.equal(h.pendingFrames(),0);h.click('pause');assert.equal(h.pendingFrames(),1);
+ h.visibility(true);h.click('reset');assert.equal(h.pendingFrames(),0);
+ h.tick(120);compare(h.run('activeTime'),0);
+ h.visibility(false);h.tick(.1);compare(h.run('activeTime'),.1);
+});
+
+test('completion cancels frames; reset and completion recheck can restart the scheduler',()=>{
+ const h=host();h.settings('totalWords',1,'DATASET');h.click('reset');
+ h.run('testState(session).words[0].depth=100;testState(session).words[0].shown=100;');
+ h.tick(.001);assert.ok(h.run('sessionComplete'));assert.equal(h.pendingFrames(),0);
+ const saved=h.run('JSON.stringify(session.getState())');h.tick(60);
+ assert.equal(h.run('JSON.stringify(session.getState())'),saved);
+ h.click('completion-review');assert.equal(h.pendingFrames(),0);
+ // Raising the finish line after a marginal completion can reopen a session.
+ h.run('testState(session).words[0].depth=91;testState(session).words[0].shown=91;');
+ h.settings('threshold',99,'FINISH');assert.equal(h.run('sessionComplete'),false);
+ assert.equal(h.pendingFrames(),0);h.click('pause');
+ assert.equal(h.pendingFrames(),1);h.tick(.1);
+ h.click('reset');assert.equal(h.pendingFrames(),1);compare(h.run('activeTime'),0);
+});
+
+test('unchanged rendering writes no attributes and reuses the synchronized engine snapshot',()=>{
+ const h=host();
+ h.run(`globalThis.attributeWrites=[];
+ const original=Object.getPrototypeOf(nodes[0].bar).setAttribute;
+ Object.getPrototypeOf(nodes[0].bar).setAttribute=function(k,v){attributeWrites.push([this,k]);return original.call(this,k,v);};
+ globalThis.snapshots=0;const getState=session.getState;
+ session.getState=()=>{snapshots++;return getState();};
+ render(0);`);
+ assert.equal(h.run('attributeWrites.length'),0);
+ h.tick(.01);assert.equal(h.run('snapshots'),1);
+ assert.equal(h.run("attributeWrites.filter(([node,key])=>key==='d' && node===el('trace')).length"),0);
+ assert.equal(h.run("attributeWrites.filter(([node,key])=>key==='d' && node===el('kick-reward-curve')).length"),0);
+ h.tick(.25);
+ assert.equal(h.run("attributeWrites.filter(([node,key])=>key==='d' && node===el('trace')).length"),1);
+});
+
+test('irregular scheduled frames and input retain exact engine timing and displayed settling',()=>{
+ const h=host(),engine=Physics.createSession({vocabulary:JSON.parse(h.run('JSON.stringify(VOCABULARY.slice(0,10))'))});
+ for(let i=0;i<180;i++){
+   const dt=[1/120,1/60,.027,.08][i%4];h.tick(dt);engine.advance(dt);
+   if(i%7===0){h.retrieve();engine.retrieve();}
+   if(i%19===0){h.retrieve(false);engine.skip();}
+   const actual=JSON.parse(h.run('JSON.stringify(session.getState())'));
+   compare(actual,engine.getState());
+ }
+});
+
+test('history stroke retains the original viewBox line weight after resizing',()=>{
+ const h=host();
+ h.run("el('chart').getScreenCTM=()=>({a:.5});updateTraceStroke();");
+ for(const id of ['trace','trace-live'])assert.equal(Number(h.elements.get(id).attrs['stroke-width']),1.15);
+ h.run("el('chart').getScreenCTM=()=>({a:1.5});updateTraceStroke();");
+ for(const id of ['trace','trace-live'])compare(Number(h.elements.get(id).attrs['stroke-width']),3.45);
 });

@@ -104,6 +104,8 @@ python3 -m http.server 8765 --bind 127.0.0.1
 
 Open `http://127.0.0.1:8765/` for the test bench, or open `index.html` directly. Tests use Node built-ins and cover linear falling speeds, exact kick/fall round trips, constant-speed and near-constant-speed stability, exponential reward values and hint continuity, reference-height kicks, unlocked-word gravity reduction, invariant kick destinations, hints, skipping, clamping, pause, unlocking, completion, deterministic replay, prototype integration, live tuning, and progress and reward graphs.
 
+Rendering performance findings, a reproducible benchmark, and measurement limits are documented in [PERFORMANCE.md](PERFORMANCE.md). Animation callbacks stop while paused, complete, or in a hidden tab; returning to the tab resumes without adding hidden time to the session.
+
 Tests use internal-state access through source instrumentation only to construct precise position/timer fixtures; the production engine exposes no state-writing API. `tests/legacy-fixtures.json` remains as action schedules for current prototype/engine parity tests; its historical snapshots are not used as expected current behavior.
 
 The remaining application consists of `index.html`, `app.js`, `style.css`, and the shared `physics.js` engine. Live tuning applies to the current session. Historical explorers, automated simulation and parameter-sweep tools, and their generated results have been removed. Preview images in the repository document the interactive application's controls and visual changes.
